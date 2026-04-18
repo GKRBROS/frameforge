@@ -1,0 +1,52 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7F0"/>
+      <stop offset="0.55" stop-color="#F3EDE5"/>
+      <stop offset="1" stop-color="#FFFDFC"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="84" y1="116" x2="540" y2="514" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111111"/>
+      <stop offset="1" stop-color="#242424"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="700" y1="140" x2="1080" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF7A18"/>
+      <stop offset="1" stop-color="#FFB347"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#171717" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1040" cy="110" r="160" fill="#FFE2C6" opacity="0.5"/>
+  <circle cx="180" cy="532" r="180" fill="#FFD7B0" opacity="0.25"/>
+
+  <g filter="url(#shadow)">
+    <rect x="76" y="84" width="500" height="462" rx="38" fill="url(#panel)"/>
+    <rect x="108" y="116" width="436" height="398" rx="30" fill="#1C1C1C" opacity="0.14"/>
+    <rect x="110" y="116" width="432" height="396" rx="28" fill="none" stroke="#FFFFFF" stroke-opacity="0.16"/>
+
+    <text x="128" y="162" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="0.16em">FRAME FORGE</text>
+    <text x="128" y="242" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="800">AI event</text>
+    <text x="128" y="312" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="66" font-weight="800">frames</text>
+    <text x="128" y="374" fill="#F2F2F2" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500">Custom visuals, smart badges,</text>
+    <text x="128" y="414" fill="#F2F2F2" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="500">and branded event experiences.</text>
+
+    <rect x="128" y="450" width="192" height="54" rx="27" fill="#FF7A18"/>
+    <text x="158" y="484" fill="#111111" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">FrameForge.one</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="660" y="120" width="390" height="390" rx="34" fill="#FFFFFF"/>
+    <rect x="690" y="150" width="330" height="330" rx="28" fill="url(#warm)" opacity="0.12"/>
+    <rect x="738" y="170" width="224" height="224" rx="30" fill="#111111" transform="rotate(8 738 170)"/>
+    <rect x="800" y="206" width="170" height="170" rx="26" fill="#FFFFFF" transform="rotate(0 800 206)"/>
+    <path d="M885 242C896 279 914 297 950 308C914 319 896 337 885 374C874 337 856 319 820 308C856 297 874 279 885 242Z" fill="#FF5B2E"/>
+    <circle cx="706" cy="414" r="18" fill="#FFB347"/>
+    <circle cx="1008" cy="158" r="16" fill="#FF7A18" opacity="0.9"/>
+  </g>
+
+  <text x="670" y="560" fill="#111111" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="700">Designed for social sharing</text>
+  <text x="670" y="594" fill="#555555" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="500">Clear branding, clean text, and strong contrast for link previews.</text>
+</svg>
