@@ -6,6 +6,7 @@ import iconSvg from '../assets/frameforge/icon.svg';
 
 export const Layout = () => {
     const [time, setTime] = useState("");
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
     const lenisRef = useRef<Lenis | null>(null);
 
@@ -46,6 +47,10 @@ export const Layout = () => {
             lenis.destroy();
         };
     }, []);
+
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [location.pathname]);
 
     useEffect(() => {
         // Reveal Elements on Scroll using Intersection Observer
@@ -133,22 +138,59 @@ export const Layout = () => {
             <div className="noise-overlay"></div>
 
             <nav id="main-nav" className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-8">
-                <div className="container mx-auto px-6 flex items-center justify-between">
-                    <Link to="/" id="nav-logo-link" className="flex items-center gap-3 group">
-                        <img src={iconSvg} alt="Frame Forge Logo" className="h-8 w-auto transition-transform duration-500 group-hover:scale-110" />
+                <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
+                    <Link to="/" id="nav-logo-link" className="flex items-center gap-3 group shrink-0">
+                        <img src={iconSvg} alt="Frame Forge Logo" className="h-7 sm:h-8 w-auto max-w-[180px] sm:max-w-none transition-transform duration-500 group-hover:scale-110" />
                     </Link>
                     
-                    <div className="hidden md:flex items-center space-x-8">
-                        <Link to="/services" id="nav-expertise-link" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Services</Link>
-                        <Link to="/how-it-works" id="nav-works-link" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">How It Works</Link>
-                        <Link to="/demo" id="nav-demo-link" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Demo</Link>
-                        <Link to="/integration" id="nav-perspectives-link" className="text-sm text-gray-400 hover:text-white transition-colors duration-300">Integration</Link>
+                    <div className="hidden xl:flex items-center space-x-6 2xl:space-x-8">
+                        <Link to="/" id="nav-home-link" className="text-xs 2xl:text-sm text-gray-400 hover:text-white transition-colors duration-300">Home</Link>
+                        <Link to="/services" id="nav-expertise-link" className="text-xs 2xl:text-sm text-gray-400 hover:text-white transition-colors duration-300">Services</Link>
+                        <Link to="/how-it-works" id="nav-works-link" className="text-xs 2xl:text-sm text-gray-400 hover:text-white transition-colors duration-300">How It Works</Link>
+                        <Link to="/demo" id="nav-demo-link" className="text-xs 2xl:text-sm text-gray-400 hover:text-white transition-colors duration-300">Demo</Link>
+                        <Link to="/integration" id="nav-perspectives-link" className="text-xs 2xl:text-sm text-gray-400 hover:text-white transition-colors duration-300">Integration</Link>
                     </div>
 
-                    <Link to="/contact" id="nav-cta-link" className="inline-flex items-center justify-center px-6 py-3 rounded-full text-sm font-medium bg-white text-black hover:scale-105 hover:bg-gray-100 transition-all duration-300">
+                    <Link to="/contact" id="nav-cta-link" className="hidden xl:inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-medium bg-white text-black hover:scale-105 hover:bg-gray-100 transition-all duration-300 shrink-0">
                         Get Started
                     </Link>
+
+                    <button
+                        type="button"
+                        aria-label="Toggle navigation menu"
+                        aria-expanded={isMobileMenuOpen}
+                        className="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white hover:border-white/40 transition-colors"
+                        onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                    >
+                        {isMobileMenuOpen ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6 6 18" />
+                                <path d="m6 6 12 12" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                                <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                        )}
+                    </button>
                 </div>
+
+                {isMobileMenuOpen && (
+                    <div className="xl:hidden px-4 sm:px-6 mt-3">
+                        <div className="rounded-2xl border border-white/10 bg-[#0a0a0a]/95 backdrop-blur-md p-4 shadow-2xl">
+                            <div className="flex flex-col gap-1">
+                                <Link to="/" className="px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">Home</Link>
+                                <Link to="/services" className="px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">Services</Link>
+                                <Link to="/how-it-works" className="px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">How It Works</Link>
+                                <Link to="/demo" className="px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">Demo</Link>
+                                <Link to="/integration" className="px-3 py-2 rounded-lg text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors">Integration</Link>
+                                <Link to="/contact" className="mt-2 inline-flex items-center justify-center px-4 py-3 rounded-full text-sm font-medium bg-white text-black hover:bg-gray-100 transition-colors">Get Started</Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </nav>
 
             <AnimatePresence mode="wait">
