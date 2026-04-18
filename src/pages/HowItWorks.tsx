@@ -1,6 +1,5 @@
 import React from 'react';
 import { UserPlus, Link2, Upload, Sparkles, Share2 } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
 
 const steps = [
   {
@@ -92,13 +91,19 @@ export const HowItWorks = () => {
                                 </p>
                             </div>
 
-                            <div className="flex-1 relative group w-full max-w-md md:max-w-none">
+                            <div className="flex-1 relative group w-full max-w-xl md:max-w-none">
                                 <div className="absolute -inset-4 bg-[#FF4500]/20 rounded-[40px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#111] aspect-[4/3] md:aspect-auto">
+                                <div className="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-[#111]">
+                                    <img
+                                        src={step.image}
+                                        alt=""
+                                        aria-hidden="true"
+                                        className="absolute inset-0 w-full h-full object-cover object-center opacity-30 scale-110 blur-xl"
+                                    />
                                     <img 
                                         src={step.image} 
                                         alt={step.title} 
-                                        className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
+                                        className="relative z-10 block w-full h-auto max-h-[75vh] object-contain object-center transform transition-transform duration-700 group-hover:scale-[1.02]"
                                     />
                                 </div>
                                 {/* Floating Label for Design Feel */}

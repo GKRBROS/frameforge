@@ -184,8 +184,8 @@ export const FrameForgePage = () => {
                         {/* Card 1 */}
                         <div className="parallax-card-down">
                             <div className="reveal bg-[#1A1A1A] border border-white/5 rounded-[32px] p-2 aspect-square flex flex-col justify-start shadow-2xl hover:border-white/10 transition-all duration-500 group overflow-hidden relative">
-                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px]">
-                                    <img src={featureAiFrames} alt="AI Event Frames" className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" />
+                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px] bg-[#0b0b0b] md:bg-transparent">
+                                    <img src={featureAiFrames} alt="AI Event Frames" className="w-full h-full object-contain md:object-cover object-center opacity-60 group-hover:scale-[1.02] group-hover:opacity-80 transition-all duration-700" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent"></div>
                                 </div>
                                 
@@ -206,8 +206,8 @@ export const FrameForgePage = () => {
                         {/* Card 2 */}
                         <div className="parallax-card-up md:mt-24">
                             <div className="reveal bg-[#111] border border-white/5 rounded-[32px] p-2 aspect-square flex flex-col justify-start shadow-2xl hover:border-[#FF4500]/50 transition-all duration-500 group overflow-hidden relative" style={{ transitionDelay: "150ms" }}>
-                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px]">
-                                    <img src={featureSmartBadges} alt="Smart Badges" className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" />
+                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px] bg-[#0b0b0b] md:bg-transparent">
+                                    <img src={featureSmartBadges} alt="Smart Badges" className="w-full h-full object-contain md:object-cover object-center opacity-60 group-hover:scale-[1.02] group-hover:opacity-80 transition-all duration-700" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent"></div>
                                 </div>
                                 
@@ -228,8 +228,8 @@ export const FrameForgePage = () => {
                         {/* Card 3 */}
                         <div className="parallax-card-down">
                             <div className="reveal bg-[#111] border border-white/5 rounded-[32px] p-2 aspect-square flex flex-col justify-start shadow-2xl hover:border-white/10 transition-all duration-500 group overflow-hidden relative">
-                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px]">
-                                    <img src={featureAiVisuals} alt="AI Visuals" className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700 blur-[2px] group-hover:blur-0" />
+                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px] bg-[#0b0b0b] md:bg-transparent">
+                                    <img src={featureAiVisuals} alt="AI Visuals" className="w-full h-full object-contain md:object-cover object-center opacity-60 group-hover:scale-[1.02] group-hover:opacity-80 transition-all duration-700 blur-[2px] group-hover:blur-0" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent"></div>
                                 </div>
                                 
@@ -250,8 +250,8 @@ export const FrameForgePage = () => {
                         {/* Card 4 */}
                         <div className="parallax-card-up md:mt-24">
                             <div className="reveal bg-[#1A1A1A] border border-white/5 rounded-[32px] p-2 aspect-square flex flex-col justify-start shadow-2xl hover:border-[#FF4500]/50 transition-all duration-500 group overflow-hidden relative" style={{ transitionDelay: "150ms" }}>
-                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px]">
-                                    <img src={featureCustomDesign} alt="Custom Design" className="w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700 grayscale group-hover:grayscale-0" />
+                                <div className="absolute inset-0 z-0 overflow-hidden rounded-[28px] bg-[#0b0b0b] md:bg-transparent">
+                                    <img src={featureCustomDesign} alt="Custom Design" className="w-full h-full object-contain md:object-cover object-center opacity-60 group-hover:scale-[1.02] group-hover:opacity-80 transition-all duration-700 grayscale group-hover:grayscale-0" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent"></div>
                                 </div>
                                 

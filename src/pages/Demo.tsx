@@ -156,12 +156,12 @@ export const Demo = () => {
                     <h1 className="text-5xl md:text-7xl font-serif text-[#ffe0e0] mb-6 tracking-tight">AI Poster Ready.</h1>
                     <p className="text-xl text-gray-500 max-w-lg mb-12">Your personalized event poster has been generated. You can now download it and share your future self.</p>
                     
-                    <div className="mb-12 relative group max-w-md w-full aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+                    <div className="mb-12 relative group max-w-md w-full aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-[#0b0b0b]">
                          {/* Placeholder for generated image */}
                         <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
                              <Sparkles className="w-12 h-12 text-[#FF4500]/20" />
                         </div>
-                        <img src={imagePreview || ''} alt="Generated Poster" className="w-full h-full object-cover opacity-50 grayscale mix-blend-luminosity" />
+                        <img src={imagePreview || ''} alt="Generated Poster" className="w-full h-full object-contain object-center opacity-70 grayscale mix-blend-luminosity" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
                         <div className="absolute bottom-8 left-8 right-8 text-left">
                             <p className="text-[#FF4500] font-bold tracking-widest text-xs uppercase mb-2">Scaleup Conclave 2026</p>
@@ -393,7 +393,7 @@ export const Demo = () => {
                                             >
                                                 {imagePreview ? (
                                                     <>
-                                                        <img src={imagePreview} alt="Upload Preview" className="absolute inset-0 w-full h-full object-cover" />
+                                                        <img src={imagePreview} alt="Upload Preview" className="absolute inset-0 w-full h-full object-contain object-center bg-[#0b0b0b]" />
                                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                                             <Upload className="w-8 h-8 text-white" />
                                                             <span className="text-white text-xs font-bold uppercase tracking-widest">Change Photo</span>
