@@ -174,9 +174,20 @@ export const Layout = () => {
                         
                         <div className="flex flex-col gap-8 text-right">
                             <div className="flex flex-col gap-4 text-gray-400">
-                                <a href="#" id="footer-ig-link" className="hover:text-white transition-colors">Instagram</a>
-                                <a href="#" id="footer-tw-link" className="hover:text-white transition-colors">Twitter</a>
-                                <a href="#" id="footer-li-link" className="hover:text-white transition-colors">LinkedIn</a>
+                                <a href="https://www.instagram.com/frameforgeone/" target="_blank" rel="noopener noreferrer" id="footer-ig-link" className="flex items-center justify-end gap-2 hover:text-white transition-colors group">
+                                    <span className="group-hover:translate-x-[-2px] transition-transform">Instagram</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                        <circle cx="12" cy="12" r="4.5"/>
+                                        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                                    </svg>
+                                </a>
+                                <a href="https://www.facebook.com/profile.php?id=61587792958879" target="_blank" rel="noopener noreferrer" id="footer-fb-link" className="flex items-center justify-end gap-2 hover:text-white transition-colors group">
+                                    <span className="group-hover:translate-x-[-2px] transition-transform">Facebook</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                                    </svg>
+                                </a>
                             </div>
                             <p className="text-sm text-gray-600">© 2026 Frame Forge. All rights reserved.</p>
                         </div>
