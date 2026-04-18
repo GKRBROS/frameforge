@@ -1,42 +1,39 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import { Layout } from './components/Layout';
-import { Home } from './pages/Home';
-import { Demo } from './pages/Demo';
-import { Services } from './pages/Services';
-import { HowItWorks } from './pages/HowItWorks';
-import { Integration } from './pages/Integration';
-import { Contact } from './pages/Contact';
-import { Loader } from './components/Loader';
+import { useState, useEffect } from "react";
+import { AppMockup } from "./components/AppMockup";
+import { Hero } from "./components/Hero";
+import { Navbar } from "./components/Navbar";
+import { SecondSection } from "./components/SecondSection";
+import { LoadingScreen } from "./components/LoadingScreen";
 
 export const App = () => {
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleLoadingFinished = () => {
+  useEffect(() => {
+    const handleLoadComplete = () => {
+      setIsLoading(false);
+    };
+
+    // Trigger the loading completion through the LoadingScreen component
+    if (isLoading) {
+      // Keep loading until LoadingScreen completes
+    }
+  }, [isLoading]);
+
+  const handleLoadingComplete = () => {
     setIsLoading(false);
   };
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        {isLoading && <Loader key="loader" onFinished={handleLoadingFinished} />}
-      </AnimatePresence>
-      
-      {!isLoading && (
-        <Router>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="demo" element={<Demo />} />
-              <Route path="services" element={<Services />} />
-              <Route path="how-it-works" element={<HowItWorks />} />
-              <Route path="integration" element={<Integration />} />
-              <Route path="contact" element={<Contact />} />
-            </Route>
-          </Routes>
-        </Router>
-      )}
+      {isLoading && <LoadingScreen onLoadComplete={handleLoadingComplete} />}
+      <div className="min-h-screen bg-[#111111] text-white">
+        <Navbar />
+        <Hero />
+        <section className="bg-[#111111]">
+          <AppMockup />
+        </section>
+        <SecondSection />
+      </div>
     </>
   );
 };

@@ -274,6 +274,48 @@ export const Contact = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Social Links Section */}
+            <section className="py-16 relative">
+                <div className="container mx-auto px-6 relative z-10">
+                    <div className="max-w-3xl mx-auto reveal">
+                        <div className="flex flex-col items-center gap-6 text-center">
+                            <p className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Follow Us</p>
+                            <div className="flex items-center gap-6">
+                                {/* Instagram */}
+                                <a
+                                    href="https://www.instagram.com/frameforgeone/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    id="contact-ig-link"
+                                    className="flex items-center gap-3 px-6 py-3 rounded-full border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-[#FF4500]/40 hover:bg-[#FF4500]/5 transition-all duration-300 group"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                        <circle cx="12" cy="12" r="4.5"/>
+                                        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                                    </svg>
+                                    <span className="text-sm font-medium">@frameforgeone</span>
+                                </a>
+
+                                {/* Facebook */}
+                                <a
+                                    href="https://www.facebook.com/profile.php?id=61587792958879"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    id="contact-fb-link"
+                                    className="flex items-center gap-3 px-6 py-3 rounded-full border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-[#FF4500]/40 hover:bg-[#FF4500]/5 transition-all duration-300 group"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                                    </svg>
+                                    <span className="text-sm font-medium">Frame Forge</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </>
     );
 };
