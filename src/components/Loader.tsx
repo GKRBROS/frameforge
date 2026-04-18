@@ -48,7 +48,7 @@ export const Loader = ({ onFinished }: { onFinished: () => void }) => {
                 
                 <div className="mt-20 w-full flex justify-between items-end">
                     <div className="flex flex-col gap-2">
-                        <span className="text-[10px] uppercase tracking-widest text-[#FF4500]">System Load</span>
+                        <span className="text-[10px] uppercase tracking-widest text-[#FF4500]">System going online</span>
                         <div className="flex items-baseline gap-2">
                             <span className="text-6xl md:text-8xl font-serif italic text-white leading-none">
                                 {progress === 100 ? "100" : progress.toString().padStart(2, '0')}

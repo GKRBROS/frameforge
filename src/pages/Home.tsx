@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, ArrowRight } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import { InteractiveTravelCard } from '../components/ui/3d-card';
 import heroMockup from '../assets/frameforge/hero-mockup.png';
 import featureAiVisuals from '../assets/frameforge/feature-ai-visuals.jpeg';
@@ -64,17 +64,21 @@ export const Home = () => {
                         </div>
 
                         <div className="reveal flex flex-col items-center gap-6" style={{ transitionDelay: "400ms" }}>
-                            <div className="relative group cursor-pointer">
+                            <Link to="/demo" className="relative group cursor-pointer">
                                <div className="absolute inset-0 bg-[#FF4500]/20 blur-xl rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500"></div>
-                               <div className="relative border border-white/20 bg-white/5 backdrop-blur-sm px-6 py-2 rounded-full flex items-center gap-3 text-xs md:text-sm text-white/80 uppercase tracking-widest hover:bg-white/10 transition-colors duration-300">
-                                 <span>Watch Demo</span>
+                               <div className="relative border border-white/20 bg-white/5 backdrop-blur-sm px-8 py-3 rounded-full flex items-center gap-3 text-sm text-white/80 uppercase tracking-[0.2em] hover:bg-white/10 transition-all duration-300">
+                                 <span>Try a Demo</span>
+                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                </div>
-                            </div>
+                            </Link>
                             
                             <div className="flex items-center gap-4 text-[10px] md:text-xs text-white/40 uppercase tracking-widest mt-8 font-mono">
                                <span id="current-time">{time}</span>
                                <span className="w-px h-3 bg-white/20"></span>
-                               <span>WAITLIST: OPEN</span>
+                               <div className="flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+                                  <span>system is online</span>
+                               </div>
                             </div>
                         </div>
                     </div>
