@@ -91,6 +91,9 @@ export const InteractiveTravelCard = React.forwardRef<
             src={imageUrl}
             alt={`${title}, ${subtitle}`}
             className="absolute inset-0 h-full w-full rounded-xl object-cover"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
           />
           
           {/* Darkening overlay for better text contrast over the image */}

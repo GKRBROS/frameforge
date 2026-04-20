@@ -15,7 +15,7 @@ export const Home = () => {
                 {/* Background Atmosphere */}
                 <div className="absolute inset-0 z-0 pointer-events-none select-none">
                     <div className="absolute top-0 left-0 w-full h-full opacity-60 mix-blend-screen">
-                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" />
+                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" loading="eager" decoding="async" fetchpriority="high" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505] z-10"></div>
                 </div>
@@ -29,7 +29,7 @@ export const Home = () => {
                          actionText="" 
                          href="#" 
                          onActionClick={() => {}} 
-                         className="w-[40vw] min-w-[280px] max-w-[350px] h-[400px] md:h-[450px] border-white/10 [&>div>div]:hidden"
+                         className="w-[40vw] min-w-[280px] max-w-[350px] h-[400px] md:h-[450px] border-white/10 [&>div>div]:hidden hidden md:block"
                      />
                 </div>
 
@@ -41,7 +41,7 @@ export const Home = () => {
                          actionText="" 
                          href="#" 
                          onActionClick={() => {}} 
-                         className="w-[40vw] min-w-[280px] max-w-[350px] h-[400px] md:h-[450px] border-white/10 [&>div>div]:hidden"
+                         className="w-[40vw] min-w-[280px] max-w-[350px] h-[400px] md:h-[450px] border-white/10 [&>div>div]:hidden hidden md:block"
                      />
                 </div>
 
@@ -98,11 +98,11 @@ export const Home = () => {
                     </div>
 
                     {/* Logo Grid */}
-                    <div className="mt-32 grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-                        <div className="reveal font-bold text-xl tracking-widest text-[#FF4500] mix-blend-screen animate-glow">FRAMES</div>
-                        <div className="reveal font-bold text-xl tracking-widest text-[#FF4500] mix-blend-screen animate-glow" style={{ transitionDelay: "100ms" }}>BADGES</div>
-                        <div className="reveal font-bold text-xl tracking-widest text-[#FF4500] mix-blend-screen animate-glow" style={{ transitionDelay: "200ms" }}>AI VISUALS</div>
-                        <div className="reveal font-bold text-xl tracking-widest text-[#FF4500] mix-blend-screen animate-glow" style={{ transitionDelay: "300ms" }}>CUSTOM DESIGN</div>
+                    <div className="mt-32 grid grid-cols-2 md:grid-cols-4 gap-8 items-center justify-items-center opacity-100 transition-all duration-500">
+                        <div className="reveal font-bold text-xl tracking-widest text-[#FF6A1A] drop-shadow-[0_0_8px_rgba(255,106,26,0.45)] transition-all duration-300 hover:scale-105 hover:text-[#FF8C42] hover:drop-shadow-[0_0_14px_rgba(255,106,26,0.7)] hover:animate-glow">FRAMES</div>
+                        <div className="reveal font-bold text-xl tracking-widest text-[#FF6A1A] drop-shadow-[0_0_8px_rgba(255,106,26,0.45)] transition-all duration-300 hover:scale-105 hover:text-[#FF8C42] hover:drop-shadow-[0_0_14px_rgba(255,106,26,0.7)] hover:animate-glow" style={{ transitionDelay: "100ms" }}>BADGES</div>
+                        <div className="reveal font-bold text-xl tracking-widest text-[#FF6A1A] drop-shadow-[0_0_8px_rgba(255,106,26,0.45)] transition-all duration-300 hover:scale-105 hover:text-[#FF8C42] hover:drop-shadow-[0_0_14px_rgba(255,106,26,0.7)] hover:animate-glow" style={{ transitionDelay: "200ms" }}>AI VISUALS</div>
+                        <div className="reveal font-bold text-xl tracking-widest text-[#FF6A1A] drop-shadow-[0_0_8px_rgba(255,106,26,0.45)] transition-all duration-300 hover:scale-105 hover:text-[#FF8C42] hover:drop-shadow-[0_0_14px_rgba(255,106,26,0.7)] hover:animate-glow" style={{ transitionDelay: "300ms" }}>CUSTOM DESIGN</div>
                     </div>
                 </div>
             </section>

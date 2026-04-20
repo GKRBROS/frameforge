@@ -86,8 +86,22 @@ export const Layout = () => {
       subtree: true,
     });
 
+    // Cache expensive queries and update values in a throttled way.
+    let ticking = false;
+    const upCards = Array.from(
+      document.querySelectorAll<HTMLElement>(".parallax-card-up"),
+    );
+    const downCards = Array.from(
+      document.querySelectorAll<HTMLElement>(".parallax-card-down"),
+    );
+    const heroWrapper = document.getElementById("hero-content-wrapper");
+
     // Scroll Effects
     const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+
+      requestAnimationFrame(() => {
       const scrolled = window.scrollY;
 
       // Navbar Scroll Effect
@@ -115,28 +129,25 @@ export const Layout = () => {
       }
 
       // Parallax Logic
-      document
-        .querySelectorAll<HTMLElement>(".parallax-card-up")
-        .forEach((el) => {
-          el.style.setProperty("--scroll-offset-up", `${scrolled * -0.05}px`);
-        });
-      document
-        .querySelectorAll<HTMLElement>(".parallax-card-down")
-        .forEach((el) => {
-          el.style.setProperty("--scroll-offset-down", `${scrolled * 0.05}px`);
-        });
+      upCards.forEach((el) => {
+        el.style.setProperty("--scroll-offset-up", `${scrolled * -0.05}px`);
+      });
+      downCards.forEach((el) => {
+        el.style.setProperty("--scroll-offset-down", `${scrolled * 0.05}px`);
+      });
 
       // Hero Content Parallax
-      const heroWrapper = document.getElementById("hero-content-wrapper");
       if (heroWrapper) {
         if (scrolled < 1000) {
           heroWrapper.style.transform = `translateY(${scrolled * 0.4}px)`;
           heroWrapper.style.opacity = String(Math.max(0, 1 - scrolled / 600));
         }
       }
+      ticking = false;
+      });
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     // Initial call in case starting scrolled down
     handleScroll();
