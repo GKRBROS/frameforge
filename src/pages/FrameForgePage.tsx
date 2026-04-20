@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Star, ArrowRight, Wand2, Frame, BadgeCheck, Palette, Sparkles } from 'lucide-react';
-import iconSvg from '../assets/frameforge/icon.svg';
+import { useEffect } from 'react';
+import { ArrowRight, Wand2, Frame, BadgeCheck, Palette, Sparkles } from 'lucide-react';
 import featureAiFrames from '../assets/frameforge/feature-ai-frames.png';
 import featureSmartBadges from '../assets/frameforge/feature-smart-badges.png';
 import featureAiVisuals from '../assets/frameforge/feature-ai-visuals.jpeg';
@@ -8,22 +7,7 @@ import featureCustomDesign from '../assets/frameforge/feature-custom-design.png'
 import heroMockup from '../assets/frameforge/hero-mockup.png';
 
 export const FrameForgePage = () => {
-    const [time, setTime] = useState("");
-
     useEffect(() => {
-        // Update Time Clock
-        function updateTime() {
-            const now = new Date();
-            let hours = now.getHours();
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; 
-            setTime(`${hours}:${minutes} ${ampm}`);
-        }
-        updateTime();
-        const intervalId = setInterval(updateTime, 60000);
-
         const revealObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -67,7 +51,6 @@ export const FrameForgePage = () => {
         window.addEventListener('scroll', handleScroll);
 
         return () => {
-            clearInterval(intervalId);
             window.removeEventListener('scroll', handleScroll);
             revealObserver.disconnect();
         };
@@ -81,8 +64,7 @@ export const FrameForgePage = () => {
             <nav id="main-nav" className="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-8">
                 <div className="container mx-auto px-6 flex items-center justify-between">
                     <a href="#" className="flex items-center gap-3 text-2xl font-bold tracking-tighter font-serif">
-                       <img src={iconSvg} alt="Frame Forge Logo" className="w-10 h-10 object-contain drop-shadow" />
-                       Frame Forge
+                       <img src="/logo_white.png" alt="Frame Forge Logo" className="h-8 md:h-9 w-auto max-w-[220px] object-contain" />
                     </a>
                     
                     <div className="hidden md:flex items-center space-x-8">

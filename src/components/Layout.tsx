@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Lenis from "lenis";
-import iconSvg from "../assets/frameforge/icon.svg";
 
 export const Layout = () => {
   const [time, setTime] = useState("");
@@ -169,9 +168,9 @@ export const Layout = () => {
             className="flex items-center gap-3 group shrink-0"
           >
             <img
-              src={iconSvg}
+              src="/logo_white.png"
               alt="Frame Forge Logo"
-              className="h-7 sm:h-8 w-auto max-w-[180px] sm:max-w-none transition-transform duration-500 group-hover:scale-110"
+              className="h-7 sm:h-8 w-auto max-w-[190px] sm:max-w-[220px] transition-transform duration-500 group-hover:scale-105"
             />
           </Link>
 

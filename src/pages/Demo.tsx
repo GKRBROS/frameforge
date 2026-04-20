@@ -1,19 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Check, Upload, User, Building, Trash2, Loader2, Sparkles, Mail, ShieldCheck, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { Check, Upload, User, Building, Trash2, Loader2, Sparkles, Mail, ShieldCheck, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { PROMPTS, GenderOption } from '../lib/prompts';
 
 type Gender = 'male' | 'female';
+const REQUEST_OTP_URL = 'https://memento.frameforge.one/api/auth/request-otp';
+const VERIFY_OTP_URL = 'https://memento.frameforge.one/api/auth/verify-otp';
+const GENERATE_URL = 'https://memento.frameforge.one/api/generate';
+const DOWNLOAD_PROXY_URL = 'https://memento.frameforge.one/api/assets/download';
+const GENERATE_API_ORIGIN = new URL(GENERATE_URL).origin;
+const DOWNLOAD_API_KEY = (import.meta.env.VITE_DOWNLOAD_API_KEY || '').trim();
+const ESTIMATED_GENERATION_SECONDS = 45;
 
 export const Demo = () => {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
     const [gender, setGender] = useState<Gender>('male');
     const [isOtpSent, setIsOtpSent] = useState(false);
     const [isOtpVerified, setIsOtpVerified] = useState(false);
     const [isSendingOtp, setIsSendingOtp] = useState(false);
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+    const [requestId, setRequestId] = useState('');
+    const [secondsRemaining, setSecondsRemaining] = useState(ESTIMATED_GENERATION_SECONDS);
     
     const [formData, setFormData] = useState({
         name: '',
@@ -25,66 +35,154 @@ export const Demo = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Simulated check for existing users
-    const [usedEmails, setUsedEmails] = useState<string[]>([]);
-
     useEffect(() => {
-        const stored = localStorage.getItem('demo_used_emails');
-        if (stored) setUsedEmails(JSON.parse(stored));
-    }, []);
+        if (!isGenerating) {
+            setSecondsRemaining(ESTIMATED_GENERATION_SECONDS);
+            return;
+        }
+
+        setSecondsRemaining(ESTIMATED_GENERATION_SECONDS);
+        const startedAt = Date.now();
+
+        const intervalId = window.setInterval(() => {
+            const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+            const next = Math.max(ESTIMATED_GENERATION_SECONDS - elapsedSeconds, 0);
+            setSecondsRemaining(next);
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, [isGenerating]);
+
+    const fetchWithTimeout = async (input: RequestInfo | URL, init?: RequestInit, timeoutMs = 15000) => {
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(input, { ...init, signal: controller.signal });
+        } finally {
+            window.clearTimeout(timer);
+        }
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const formatCountdown = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const generationProgress = ((ESTIMATED_GENERATION_SECONDS - secondsRemaining) / ESTIMATED_GENERATION_SECONDS) * 100;
+
+    const toAbsoluteImageUrl = (value: unknown) => {
+        if (typeof value !== 'string' || !value.trim()) return null;
+        const raw = value.trim();
+        if (/^https?:\/\//i.test(raw)) return raw;
+
+        try {
+            return new URL(raw, GENERATE_API_ORIGIN).toString();
+        } catch {
+            return null;
+        }
+    };
+
     const handleSendOtp = async () => {
-        if (!formData.email || !formData.email.includes('@')) {
+        const email = formData.email.trim().toLowerCase();
+
+        if (!email || !email.includes('@')) {
             toast.error("Please enter a valid email address.", { theme: "dark" });
             return;
         }
 
-        if (usedEmails.includes(formData.email)) {
-            toast.warning("This email has already been used for a demo poster.", { theme: "dark" });
-            return;
-        }
-
         setIsSendingOtp(true);
-        // Simulate sending OTP
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsOtpSent(true);
-        setIsSendingOtp(false);
-        toast.info("Verification code sent to your email!", { theme: "dark" });
+        try {
+            const response = await fetchWithTimeout(REQUEST_OTP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data?.error || 'Failed to send verification code.');
+            }
+
+            setFormData(prev => ({ ...prev, email }));
+            setRequestId(data?.requestId || '');
+            setIsOtpSent(true);
+            toast.info('Verification code sent to your email!', { theme: 'dark' });
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.name === 'AbortError'
+                    ? 'Request timed out. Please try again.'
+                    : error.message
+                : 'Failed to send verification code.';
+            toast.error(message, { theme: 'dark' });
+        } finally {
+            setIsSendingOtp(false);
+        }
     };
 
     const handleVerifyOtp = async () => {
-        if (formData.otp.length < 4) {
-            toast.error("Please enter the full verification code.", { theme: "dark" });
+        const otp = formData.otp.trim();
+
+        if (!/^\d{6}$/.test(otp)) {
+            toast.error('Enter the 6-digit verification code.', { theme: 'dark' });
             return;
         }
 
         setIsVerifyingOtp(true);
-        // Simulate OTP verification (hardcoded "1234" for demo)
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (formData.otp === "1234") {
+        try {
+            const response = await fetchWithTimeout(VERIFY_OTP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    otp,
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data?.verified) {
+                throw new Error(data?.error || 'Verification failed.');
+            }
+
+            setRequestId(data?.requestId || requestId);
             setIsOtpVerified(true);
+            toast.success('Email verified! You can now proceed.', { theme: 'dark' });
+        } catch (error) {
+            const message = error instanceof Error
+                ? error.name === 'AbortError'
+                    ? 'Request timed out. Please try again.'
+                    : error.message
+                : 'Verification failed.';
+            toast.error(message, { theme: 'dark' });
+        } finally {
             setIsVerifyingOtp(false);
-            toast.success("Email verified! You can now proceed.", { theme: "dark" });
-            
-            // Mark email as used
-            const newUsed = [...usedEmails, formData.email];
-            setUsedEmails(newUsed);
-            localStorage.setItem('demo_used_emails', JSON.stringify(newUsed));
-        } else {
-            setIsVerifyingOtp(false);
-            toast.error("Invalid verification code. Use 1234 for this demo.", { theme: "dark" });
         }
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+            const fileName = file.name.toLowerCase();
+            const hasAllowedExtension = /\.(png|jpe?g)$/.test(fileName);
+
+            if (!allowedMimeTypes.includes(file.type) && !hasAllowedExtension) {
+                toast.error('Only PNG, JPG, or JPEG files are allowed.', { theme: 'dark' });
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+
             if (file.size > 5 * 1024 * 1024) {
                 toast.error("File size too large. Max 5MB.", { theme: "dark" });
                 return;
@@ -104,6 +202,51 @@ export const Demo = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const handleDownloadPoster = async () => {
+        if (!generatedImageUrl) {
+            toast.error('No generated image URL found.', { theme: 'dark' });
+            return;
+        }
+
+        setIsDownloading(true);
+        try {
+            const downloadUrl = new URL(DOWNLOAD_PROXY_URL);
+            downloadUrl.searchParams.set('url', generatedImageUrl);
+            downloadUrl.searchParams.set('download', '1');
+            downloadUrl.searchParams.set('filename', 'frameforge-final.png');
+            if (DOWNLOAD_API_KEY) {
+                downloadUrl.searchParams.set('apiKey', DOWNLOAD_API_KEY);
+            }
+
+            const headers: HeadersInit = DOWNLOAD_API_KEY
+                ? { 'x-download-api-key': DOWNLOAD_API_KEY }
+                : {};
+
+            const response = await fetch(downloadUrl.toString(), {
+                method: 'GET',
+                headers,
+            });
+
+            if (!response.ok) {
+                throw new Error('Download API request failed.');
+            }
+
+            const blob = await response.blob();
+            const objectUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = 'frameforge-final.png';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(objectUrl);
+        } catch {
+            toast.error('Download failed. Please try again.', { theme: 'dark' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -117,25 +260,54 @@ export const Demo = () => {
             return;
         }
 
+        if (!requestId) {
+            toast.error('Missing verification session. Please verify email again.', { theme: 'dark' });
+            return;
+        }
+
         setIsGenerating(true);
         
-        // Simulating API implementation with the imported prompt
         try {
-            const payload = {
-                name: formData.name,
-                organization: formData.organization,
-                gender: gender,
-                systemPrompt: PROMPTS[gender as GenderOption], // Integrated prompt from prompts.ts
-                email: formData.email
-            };
-            
-            console.log("Sending Generation Request:", payload);
-            
-            await new Promise(resolve => setTimeout(resolve, 4000));
-            toast.success("Image generation successful!", { theme: "dark" });
+            const payload = new FormData();
+            payload.append('photo', selectedFile);
+            payload.append('email', formData.email);
+            payload.append('requestId', requestId);
+            payload.append('name', formData.name);
+            payload.append('organization', formData.organization);
+            payload.append('gender', gender);
+
+            const response = await fetchWithTimeout(GENERATE_URL, {
+                method: 'POST',
+                body: payload,
+            }, 45000);
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data?.success) {
+                throw new Error(data?.error || 'Generation failed.');
+            }
+
+            const finalImageUrl =
+                toAbsoluteImageUrl(data?.finalImage) ||
+                toAbsoluteImageUrl(data?.finalImageUrl) ||
+                toAbsoluteImageUrl(data?.generatedImage) ||
+                toAbsoluteImageUrl(data?.generatedImageUrl) ||
+                null;
+
+            if (!finalImageUrl) {
+                throw new Error('Generation completed but no usable image URL was returned by API.');
+            }
+
+            setGeneratedImageUrl(finalImageUrl);
+            toast.success('Image generation successful!', { theme: 'dark' });
             setIsSubmitted(true);
         } catch (error) {
-            toast.error("Generation failed. Please try again.", { theme: "dark" });
+            const message = error instanceof Error
+                ? error.name === 'AbortError'
+                    ? 'Generation timed out. Please try again.'
+                    : error.message
+                : 'Generation failed. Please try again.';
+            toast.error(message, { theme: 'dark' });
         } finally {
             setIsGenerating(false);
         }
@@ -157,11 +329,12 @@ export const Demo = () => {
                     <p className="text-xl text-gray-500 max-w-lg mb-12">Your personalized event poster has been generated. You can now download it and share your future self.</p>
                     
                     <div className="mb-12 relative group max-w-md w-full aspect-[2/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-[#0b0b0b]">
-                         {/* Placeholder for generated image */}
-                        <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
-                             <Sparkles className="w-12 h-12 text-[#FF4500]/20" />
-                        </div>
-                        <img src={imagePreview || ''} alt="Generated Poster" className="w-full h-full object-contain object-center opacity-70 grayscale mix-blend-luminosity" />
+                        {!generatedImageUrl && (
+                            <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
+                                <Sparkles className="w-12 h-12 text-[#FF4500]/20" />
+                            </div>
+                        )}
+                        <img src={generatedImageUrl || ''} alt="Generated Poster" className="w-full h-full object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
                         <div className="absolute bottom-8 left-8 right-8 text-left">
                             <p className="text-[#FF4500] font-bold tracking-widest text-xs uppercase mb-2">Scaleup Conclave 2026</p>
@@ -171,11 +344,21 @@ export const Demo = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition-all active:scale-95 text-base flex items-center gap-2">
-                            Download Poster <Upload className="w-4 h-4 rotate-180" />
-                        </button>
-                        <button onClick={() => setIsSubmitted(false)} className="px-8 py-4 bg-transparent border border-white/20 text-white rounded-full font-bold hover:bg-white/5 transition-all active:scale-95 text-base">
-                            Create Another
+                        <button
+                            type="button"
+                            onClick={handleDownloadPoster}
+                            disabled={!generatedImageUrl || isDownloading}
+                            className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition-all active:scale-95 text-base flex items-center gap-2 disabled:opacity-60"
+                        >
+                            {isDownloading ? (
+                                <>
+                                    Downloading... <Loader2 className="w-4 h-4 animate-spin" />
+                                </>
+                            ) : (
+                                <>
+                                    Download Poster <Upload className="w-4 h-4 rotate-180" />
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -195,6 +378,11 @@ export const Demo = () => {
 
                 <div className="container mx-auto px-6 relative z-20 text-center">
                     <div className="reveal">
+                        <img
+                            src="/logo_white.png"
+                            alt="Frame Forge Logo"
+                            className="h-8 md:h-10 w-auto mx-auto mb-8 opacity-95"
+                        />
                         <h1 className="text-5xl md:text-8xl font-medium leading-[1.1] tracking-tight mb-6 text-[#ffe0e0] mix-blend-overlay font-serif" style={{ textShadow: "0 0 12px rgba(255,255,255,0.71)" }}>
                             AI Persona.
                         </h1>
@@ -249,6 +437,7 @@ export const Demo = () => {
 
                                         {!isOtpSent ? (
                                             <button 
+                                                type="button"
                                                 onClick={handleSendOtp}
                                                 disabled={isSendingOtp}
                                                 className="w-full bg-white text-black font-bold uppercase tracking-widest py-5 rounded-full hover:bg-gray-200 transition-all flex items-center justify-center gap-2 group/btn"
@@ -268,14 +457,15 @@ export const Demo = () => {
                                                             name="otp" 
                                                             value={formData.otp} 
                                                             onChange={handleInputChange} 
-                                                            placeholder="Enter 1234" 
-                                                            maxLength={4}
+                                                            placeholder="Enter 6-digit OTP" 
+                                                            maxLength={6}
                                                             className="w-full bg-white/5 border border-[#FF4500]/40 rounded-full px-6 py-5 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500] transition-colors pl-14 tracking-[1em] font-bold text-center" 
                                                         />
                                                         <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[#FF4500]" />
                                                     </div>
                                                 </div>
                                                 <button 
+                                                    type="button"
                                                     onClick={handleVerifyOtp}
                                                     disabled={isVerifyingOtp}
                                                     className="w-full bg-[#FF4500] text-white font-bold uppercase tracking-widest py-5 rounded-full hover:bg-[#FF5510] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#FF4500]/20"
@@ -283,7 +473,13 @@ export const Demo = () => {
                                                     {isVerifyingOtp ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Verify Identity <Check className="w-5 h-5" /></>}
                                                 </button>
                                                 <button 
-                                                    onClick={() => setIsOtpSent(false)} 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsOtpSent(false);
+                                                        setIsOtpVerified(false);
+                                                        setRequestId('');
+                                                        setFormData(prev => ({ ...prev, otp: '' }));
+                                                    }} 
                                                     className="w-full text-xs text-gray-500 uppercase tracking-widest hover:text-white transition-colors"
                                                 >
                                                     Change Email Address
@@ -301,8 +497,8 @@ export const Demo = () => {
                                 transition={{ duration: 0.6, delay: 0.2 }}
                                 className="max-w-6xl mx-auto"
                             >
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                                    <div className="bg-[#111] p-8 md:p-12 rounded-[40px] border border-white/5 shadow-2xl space-y-10 relative">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-stretch">
+                                    <div className="bg-[#111] p-8 md:p-12 rounded-[40px] border border-white/5 shadow-2xl space-y-10 relative h-full">
                                         <div className="flex items-center justify-between pb-6 border-b border-white/5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
@@ -324,8 +520,9 @@ export const Demo = () => {
                                                         name="name" 
                                                         value={formData.name} 
                                                         onChange={handleInputChange} 
+                                                        disabled={isGenerating}
                                                         placeholder="e.g. MOHANLAL" 
-                                                        className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500]/50 transition-colors pl-14" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500]/50 transition-colors pl-14 disabled:opacity-60" 
                                                     />
                                                     <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
                                                 </div>
@@ -338,8 +535,9 @@ export const Demo = () => {
                                                         name="organization" 
                                                         value={formData.organization} 
                                                         onChange={handleInputChange} 
+                                                        disabled={isGenerating}
                                                         placeholder="e.g. Acme Tech" 
-                                                        className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500]/50 transition-colors pl-14" 
+                                                        className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500]/50 transition-colors pl-14 disabled:opacity-60" 
                                                     />
                                                     <Building className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
                                                 </div>
@@ -356,11 +554,12 @@ export const Demo = () => {
                                                             key={option}
                                                             type="button"
                                                             onClick={() => setGender(option)}
+                                                            disabled={isGenerating}
                                                             className={`flex-1 py-4 px-4 rounded-xl text-sm font-bold transition-all uppercase tracking-wider ${
                                                                 gender === option 
                                                                 ? 'bg-white text-black shadow-lg scale-[1.02]' 
                                                                 : 'text-gray-500 hover:text-white'
-                                                            }`}
+                                                            } disabled:opacity-60`}
                                                         >
                                                             {option}
                                                         </button>
@@ -369,6 +568,7 @@ export const Demo = () => {
                                             </div>
 
                                             <button 
+                                                type="button"
                                                 onClick={handleSubmit}
                                                 disabled={isGenerating}
                                                 className="w-full flex items-center justify-center gap-3 bg-[#FF4500] text-white font-bold uppercase tracking-[0.2em] rounded-full py-6 mt-8 hover:bg-[#FF5510] transition-all hover:scale-[1.01] active:scale-[0.98] shadow-2xl shadow-[#FF4500]/20 disabled:opacity-50"
@@ -379,17 +579,59 @@ export const Demo = () => {
                                                     <>Generate AI Portrait <Sparkles className="w-5 h-5" /></>
                                                 )}
                                             </button>
+
+                                            <AnimatePresence>
+                                                {isGenerating && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: -8 }}
+                                                        transition={{ duration: 0.35 }}
+                                                        className="mt-6 rounded-2xl border border-[#FF4500]/20 bg-[#FF4500]/5 p-5"
+                                                    >
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <p className="text-xs uppercase tracking-widest text-[#FF4500] font-bold">Estimated Generation Time</p>
+                                                            <motion.p
+                                                                key={secondsRemaining}
+                                                                initial={{ scale: 1.06, opacity: 0.7 }}
+                                                                animate={{ scale: 1, opacity: 1 }}
+                                                                transition={{ duration: 0.25 }}
+                                                                className="text-sm font-semibold text-white"
+                                                            >
+                                                                {formatCountdown(secondsRemaining)}
+                                                            </motion.p>
+                                                        </div>
+
+                                                        <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                                                            <motion.div
+                                                                className="h-full rounded-full bg-gradient-to-r from-[#FF4500] via-[#FF6A1A] to-[#FFA366]"
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${generationProgress}%` }}
+                                                                transition={{ ease: 'easeOut', duration: 0.9 }}
+                                                            />
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between mt-3 text-[11px] text-gray-400">
+                                                            <span>Preparing your final poster...</span>
+                                                            <span>Please stay on this page</span>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
                                     </div>
 
-                                    <div className="reveal lg:sticky lg:top-32" style={{ transitionDelay: "150ms" }}>
-                                        <div className="bg-[#111] p-8 md:p-10 rounded-[40px] border border-white/5 shadow-2xl flex flex-col items-center text-center">
+                                    <div className="lg:sticky lg:top-32 h-full">
+                                        <div className="bg-[#111] p-8 md:p-10 rounded-[40px] border border-white/5 shadow-2xl flex flex-col items-center text-center h-full">
                                             <label className="text-xs uppercase tracking-widest text-gray-500 font-semibold mb-8">Portrait Upload</label>
                                             
                                             <div 
-                                                onClick={() => fileInputRef.current?.click()}
+                                                onClick={() => {
+                                                    if (!isGenerating) fileInputRef.current?.click();
+                                                }}
                                                 className={`relative w-full aspect-square rounded-3xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-4 overflow-hidden group
-                                                    ${imagePreview ? 'border-[#FF4500]/40' : 'border-white/10 hover:border-white/30 bg-white/[0.02]'}`}
+                                                    ${imagePreview ? 'border-[#FF4500]/40' : 'border-white/10 hover:border-white/30 bg-white/[0.02]'}
+                                                    ${isGenerating ? 'pointer-events-none opacity-60' : ''}`}
                                             >
                                                 {imagePreview ? (
                                                     <>
@@ -414,14 +656,17 @@ export const Demo = () => {
                                                     type="file" 
                                                     ref={fileInputRef} 
                                                     onChange={handleImageUpload} 
-                                                    accept="image/*" 
+                                                    accept=".png,.jpg,.jpeg,image/png,image/jpeg" 
+                                                    disabled={isGenerating}
                                                     className="hidden" 
                                                 />
                                             </div>
 
                                             {imagePreview && (
                                                 <button 
+                                                    type="button"
                                                     onClick={handleRemoveImage}
+                                                    disabled={isGenerating}
                                                     className="mt-6 flex items-center gap-2 text-xs text-red-500/60 hover:text-red-500 transition-colors uppercase font-bold tracking-widest"
                                                 >
                                                     <Trash2 className="w-4 h-4" /> Remove Photo
