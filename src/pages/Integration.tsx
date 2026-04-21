@@ -121,14 +121,6 @@ export const Integration = () => {
                         ))}
                     </div>
 
-                    <div className="mt-32 border-t border-white/10 pt-20 text-center reveal">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-500 max-w-4xl mx-auto">
-                            <div className="font-bold text-xl tracking-widest text-[#FF4500]">EVENTBRITE</div>
-                            <div className="font-bold text-xl tracking-widest text-white">TICKETMASTER</div>
-                            <div className="font-bold text-xl tracking-widest text-[#FF4500]">CVENT</div>
-                            <div className="font-bold text-xl tracking-widest text-white">BIIZABO</div>
-                        </div>
-                    </div>
                 </div>
             </section>
         </>

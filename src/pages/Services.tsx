@@ -134,16 +134,16 @@ export const Services = () => {
                                     <h3 className="text-4xl md:text-5xl text-white mb-4 leading-none tracking-tight font-serif">
                                         Ticketing Integration
                                     </h3>
-                                    <p className="text-gray-400 text-lg leading-snug max-w-lg">
+                                    <p className="text-gray-200 text-lg leading-snug max-w-lg">
                                         Connect Frame Forge seamlessly with existing platforms for automated workflows.
                                     </p>
                                 </div>
                                 <div className="mt-8 md:mt-0 text-center md:text-right">
-                                    <div className="grid grid-cols-2 gap-4 opacity-40">
-                                        <span className="font-mono text-xs uppercase tracking-widest text-[#FF4500]">Eventbrite</span>
-                                        <span className="font-mono text-xs uppercase tracking-widest text-white">Ticketmaster</span>
-                                        <span className="font-mono text-xs uppercase tracking-widest text-white">Cvent</span>
-                                        <span className="font-mono text-xs uppercase tracking-widest text-[#FF4500]">More+</span>
+                                    <div className="grid grid-cols-2 gap-4 opacity-90">
+                                        <span className="font-mono text-xs uppercase tracking-widest text-[#FF6A1A]">API Ready</span>
+                                        <span className="font-mono text-xs uppercase tracking-widest text-gray-100">Webhook Sync</span>
+                                        <span className="font-mono text-xs uppercase tracking-widest text-gray-100">CRM Compatible</span>
+                                        <span className="font-mono text-xs uppercase tracking-widest text-[#FF6A1A]">More+</span>
                                     </div>
                                 </div>
                             </div>

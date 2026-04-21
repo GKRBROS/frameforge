@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp } from "lucide-react";
 import Lenis from "lenis";
 
 export const Layout = () => {
   const [time, setTime] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const location = useLocation();
   const lenisRef = useRef<Lenis | null>(null);
 
@@ -102,48 +104,50 @@ export const Layout = () => {
       ticking = true;
 
       requestAnimationFrame(() => {
-      const scrolled = window.scrollY;
+        const scrolled = window.scrollY;
 
-      // Navbar Scroll Effect
-      const nav = document.getElementById("main-nav");
-      if (nav) {
-        if (scrolled > 50) {
-          nav.classList.add(
-            "py-4",
-            "bg-[#050505]/80",
-            "backdrop-blur-md",
-            "border-b",
-            "border-white/5",
-          );
-          nav.classList.remove("py-8", "bg-transparent");
-        } else {
-          nav.classList.remove(
-            "py-4",
-            "bg-[#050505]/80",
-            "backdrop-blur-md",
-            "border-b",
-            "border-white/5",
-          );
-          nav.classList.add("py-8", "bg-transparent");
+        // Navbar Scroll Effect
+        const nav = document.getElementById("main-nav");
+        if (nav) {
+          if (scrolled > 50) {
+            nav.classList.add(
+              "py-4",
+              "bg-[#050505]/80",
+              "backdrop-blur-md",
+              "border-b",
+              "border-white/5",
+            );
+            nav.classList.remove("py-8", "bg-transparent");
+          } else {
+            nav.classList.remove(
+              "py-4",
+              "bg-[#050505]/80",
+              "backdrop-blur-md",
+              "border-b",
+              "border-white/5",
+            );
+            nav.classList.add("py-8", "bg-transparent");
+          }
         }
-      }
 
-      // Parallax Logic
-      upCards.forEach((el) => {
-        el.style.setProperty("--scroll-offset-up", `${scrolled * -0.05}px`);
-      });
-      downCards.forEach((el) => {
-        el.style.setProperty("--scroll-offset-down", `${scrolled * 0.05}px`);
-      });
+        // Parallax Logic
+        upCards.forEach((el) => {
+          el.style.setProperty("--scroll-offset-up", `${scrolled * -0.05}px`);
+        });
+        downCards.forEach((el) => {
+          el.style.setProperty("--scroll-offset-down", `${scrolled * 0.05}px`);
+        });
 
-      // Hero Content Parallax
-      if (heroWrapper) {
-        if (scrolled < 1000) {
-          heroWrapper.style.transform = `translateY(${scrolled * 0.4}px)`;
-          heroWrapper.style.opacity = String(Math.max(0, 1 - scrolled / 600));
+        // Hero Content Parallax
+        if (heroWrapper) {
+          if (scrolled < 1000) {
+            heroWrapper.style.transform = `translateY(${scrolled * 0.4}px)`;
+            heroWrapper.style.opacity = String(Math.max(0, 1 - scrolled / 600));
+          }
         }
-      }
-      ticking = false;
+
+        setShowBackToTop(scrolled > 420);
+        ticking = false;
       });
     };
 
@@ -406,6 +410,23 @@ export const Layout = () => {
           </div>
         </div>
       </footer>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          aria-label="Back to top"
+          onClick={() => {
+            if (lenisRef.current) {
+              lenisRef.current.scrollTo(0, { duration: 1 });
+              return;
+            }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          className="fixed bottom-6 right-6 z-[70] h-11 w-11 rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-sm shadow-xl hover:bg-[#FF4500] hover:border-[#FF4500] transition-all"
+        >
+          <ArrowUp className="w-5 h-5 mx-auto" />
+        </button>
+      )}
     </div>
   );
 };

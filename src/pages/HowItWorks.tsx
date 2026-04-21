@@ -86,7 +86,7 @@ export const HowItWorks = () => {
                                     {step.title}.
                                 </h2>
                                 
-                                <p className="text-lg md:text-xl text-gray-400 leading-relaxed font-light max-w-lg">
+                                <p className="text-lg md:text-xl text-gray-300 leading-relaxed font-light max-w-xl">
                                     {step.description}
                                 </p>
                             </div>
@@ -103,12 +103,8 @@ export const HowItWorks = () => {
                                     <img 
                                         src={step.image} 
                                         alt={step.title} 
-                                        className="relative z-10 block w-full h-auto max-h-[75vh] object-contain object-center transform transition-transform duration-700 group-hover:scale-[1.02]"
+                                        className="relative z-10 block w-full h-auto max-h-[75vh] object-contain object-center transform transition-transform duration-700 group-hover:scale-[1.02] p-2 sm:p-3"
                                     />
-                                </div>
-                                {/* Floating Label for Design Feel */}
-                                <div className="absolute -bottom-6 -right-6 md:right-12 bg-white text-black px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest shadow-xl transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-                                    Visual Showcase
                                 </div>
                             </div>
 

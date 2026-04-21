@@ -34,7 +34,7 @@ export const InteractiveTravelCard = React.forwardRef<
 >(
   (
     { title, subtitle, imageUrl, actionText, href, onActionClick, className },
-    ref
+    ref,
   ) => {
     // --- 3D Tilt Animation Logic ---
     const mouseX = useMotionValue(0);
@@ -76,7 +76,7 @@ export const InteractiveTravelCard = React.forwardRef<
         className={cn(
           // Base styles for the card container, using theme variables for border
           "relative h-[26rem] w-80 rounded-2xl bg-transparent shadow-2xl border border-white/30",
-          className
+          className,
         )}
       >
         <div
@@ -95,23 +95,22 @@ export const InteractiveTravelCard = React.forwardRef<
             decoding="async"
             fetchpriority="low"
           />
-          
+
           {/* Darkening overlay for better text contrast over the image */}
           <div className="absolute inset-0 h-full w-full rounded-xl bg-gradient-to-b from-black/20 via-transparent to-black/60" />
 
           {/* Card Content (Header & Footer) */}
           <div className="relative flex flex-col justify-between rounded-xl p-4 text-white">
-            
             {/* Header section with text and link */}
             <div className="flex items-start justify-between z-10">
               <div>
-                <motion.h2 
+                <motion.h2
                   style={{ transform: "translateZ(50px)" }}
                   className="text-2xl font-bold"
                 >
                   {title}
                 </motion.h2>
-                <motion.p 
+                <motion.p
                   style={{ transform: "translateZ(40px)" }}
                   className="text-sm font-light text-white/80"
                 >
@@ -141,7 +140,7 @@ export const InteractiveTravelCard = React.forwardRef<
               className={cn(
                 "w-full rounded-lg py-3 text-center font-semibold text-white transition-colors z-20 pointer-events-auto",
                 // Glassmorphism styling for the button, designed to work over a dark image overlay
-                "bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20 hover:bg-white/20"
+                "bg-white/10 backdrop-blur-md ring-1 ring-inset ring-white/20 hover:bg-white/20",
               )}
             >
               {actionText}
@@ -150,6 +149,6 @@ export const InteractiveTravelCard = React.forwardRef<
         </div>
       </motion.div>
     );
-  }
+  },
 );
 InteractiveTravelCard.displayName = "InteractiveTravelCard";
