@@ -24,6 +24,55 @@ const GENERATE_API_ORIGIN = new URL(GENERATE_URL).origin;
 const DOWNLOAD_API_KEY = (import.meta.env.VITE_DOWNLOAD_API_KEY || "").trim();
 const ESTIMATED_GENERATION_SECONDS = 45;
 
+const getApiMessage = (data: unknown, fallback: string) => {
+  if (!data || typeof data !== "object") return fallback;
+
+  const candidates = [
+    (data as Record<string, unknown>).message,
+    (data as Record<string, unknown>).error,
+    (data as Record<string, unknown>).detail,
+    (data as Record<string, unknown>).reason,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return fallback;
+};
+
+const isAlreadyRegistered = (status: number, message: string, data: unknown) => {
+  if (typeof data === "object" && data !== null) {
+    const record = data as Record<string, unknown>;
+    if (
+      record.alreadyRegistered === true ||
+      record.alreadyExists === true ||
+      record.exists === true
+    ) {
+      return true;
+    }
+  }
+
+  if (status === 409) return true;
+  return /already\s*(registered|exists|verified|used)|email\s*(already\s*)?(exists|registered)/i.test(
+    message,
+  );
+};
+
+const isOtpInvalid = (status: number, message: string) => {
+  if (status === 400 || status === 422) {
+    return /invalid|incorrect|wrong|not\s*valid|mismatch/i.test(message);
+  }
+  return /invalid|incorrect|wrong|not\s*valid|mismatch/i.test(message);
+};
+
+const isOtpExpired = (status: number, message: string) => {
+  if (status === 410) return true;
+  return /expired|timeout|timed\s*out/i.test(message);
+};
+
 export const Demo = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -50,6 +99,7 @@ export const Demo = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     if (!isGenerating) {
@@ -131,14 +181,32 @@ export const Demo = () => {
 
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data?.error || "Failed to send verification code.");
+      const apiMessage = getApiMessage(
+        data,
+        "Failed to send verification code.",
+      );
+
+      if (isAlreadyRegistered(response.status, apiMessage, data)) {
+        toast.info(
+          "This email is already registered. Please use another email or continue with the existing account.",
+          { theme: "dark" },
+        );
       }
 
+      if (!response.ok) {
+        throw new Error(apiMessage);
+      }
+
+      const maybeRequestId =
+        typeof data?.requestId === "string" ? data.requestId : "";
       setFormData((prev) => ({ ...prev, email }));
-      setRequestId(data?.requestId || "");
+      setRequestId(maybeRequestId);
       setIsOtpSent(true);
-      toast.info("Verification code sent to your email!", { theme: "dark" });
+
+      const successMessage = /sent|verification\s*code/i.test(apiMessage)
+        ? apiMessage
+        : "Verification code sent to your email!";
+      toast.info(successMessage, { theme: "dark" });
     } catch (error) {
       const message =
         error instanceof Error
@@ -175,13 +243,28 @@ export const Demo = () => {
 
       const data = await response.json().catch(() => ({}));
 
+      const apiMessage = getApiMessage(data, "Verification failed.");
+
       if (!response.ok || !data?.verified) {
-        throw new Error(data?.error || "Verification failed.");
+        if (isOtpExpired(response.status, apiMessage)) {
+          throw new Error("OTP expired. Please request a new code.");
+        }
+
+        if (isOtpInvalid(response.status, apiMessage)) {
+          throw new Error("Invalid OTP. Please check and try again.");
+        }
+
+        throw new Error(apiMessage);
       }
 
       setRequestId(data?.requestId || requestId);
       setIsOtpVerified(true);
-      toast.success("Email verified! You can now proceed.", { theme: "dark" });
+      toast.success(
+        /verified|success/i.test(apiMessage)
+          ? apiMessage
+          : "OTP verified successfully! You can now proceed.",
+        { theme: "dark" },
+      );
     } catch (error) {
       const message =
         error instanceof Error
@@ -224,6 +307,19 @@ export const Demo = () => {
   };
 
   const handleRemoveImage = () => {
+      // Modal logic
+      const handleUploadClick = () => {
+        if (!isGenerating) setShowUploadModal(true);
+      };
+
+      const handleModalOk = () => {
+        setShowUploadModal(false);
+        fileInputRef.current?.click();
+      };
+
+      const handleModalCancel = () => {
+        setShowUploadModal(false);
+      };
     setSelectedFile(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -738,13 +834,40 @@ export const Demo = () => {
                       </label>
 
                       <div
-                        onClick={() => {
-                          if (!isGenerating) fileInputRef.current?.click();
-                        }}
+                        onClick={handleUploadClick}
                         className={`relative w-full aspect-square rounded-3xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-4 overflow-hidden group
                                                     ${imagePreview ? "border-[#FF4500]/40" : "border-white/10 hover:border-white/30 bg-white/[0.02]"}
                                                     ${isGenerating ? "pointer-events-none opacity-60" : ""}`}
                       >
+                              {showUploadModal && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                                  <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl p-6 font-sans">
+                                    <h3 className="text-lg font-semibold mb-2">Upload Warning</h3>
+                                    <p className="text-sm text-gray-600 mb-5">
+                                      You only have one generation so please use a good photo with proper lighting and direct angles
+                                    </p>
+                                    <img
+                                      src="/Image to use.webp"
+                                      alt="Guidelines"
+                                      className="w-full h-auto rounded-lg mb-5 object-contain"
+                                    />
+                                    <div className="flex justify-end gap-3">
+                                      <button
+                                        onClick={handleModalCancel}
+                                        className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={handleModalOk}
+                                        className="px-4 py-2 rounded-md bg-black text-white font-semibold hover:bg-gray-900 transition"
+                                      >
+                                        OK, Continue
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                         {imagePreview ? (
                           <>
                             <img

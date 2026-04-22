@@ -1,7 +1,10 @@
 import { Suspense, lazy, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Loader } from "./components/Loader";
+import { AdminAuthProvider } from "./lib/AdminAuthContext";
 
 const Layout = lazy(() =>
   import("./components/Layout").then((m) => ({ default: m.Layout })),
@@ -24,6 +27,11 @@ const Integration = lazy(() =>
 const Contact = lazy(() =>
   import("./pages/Contact").then((m) => ({ default: m.Contact })),
 );
+const AdminDashboard = lazy(() =>
+  import("./pages/AdminDashboard").then((m) => ({
+    default: m.AdminDashboard,
+  })),
+);
 
 export const App = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -41,20 +49,32 @@ export const App = () => {
       </AnimatePresence>
 
       {!isLoading && (
-        <Router>
-          <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Home />} />
-                <Route path="demo" element={<Demo />} />
-                <Route path="services" element={<Services />} />
-                <Route path="how-it-works" element={<HowItWorks />} />
-                <Route path="integration" element={<Integration />} />
-                <Route path="contact" element={<Contact />} />
-              </Route>
-            </Routes>
-          </Suspense>
-        </Router>
+        <AdminAuthProvider>
+          <Router>
+            <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
+              <Routes>
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<Home />} />
+                  <Route path="demo" element={<Demo />} />
+                  <Route path="services" element={<Services />} />
+                  <Route path="how-it-works" element={<HowItWorks />} />
+                  <Route path="integration" element={<Integration />} />
+                  <Route path="contact" element={<Contact />} />
+                </Route>
+                <Route path="admin" element={<AdminDashboard />} />
+              </Routes>
+            </Suspense>
+          </Router>
+          <ToastContainer
+            position="top-right"
+            autoClose={3500}
+            newestOnTop
+            closeOnClick
+            pauseOnHover
+            draggable
+            theme="dark"
+          />
+        </AdminAuthProvider>
       )}
     </>
   );

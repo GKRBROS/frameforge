@@ -1,3 +1,263 @@
+#
+
+# Admin API Endpoints (Dashboard)
+
+These endpoints are for secure admin authentication and management. Only registered admin emails can request OTPs and register new admins. All security measures (CORS, rate limiting, OTP hashing, session binding, strict validation) are enforced as in the user flow.
+
+**Session/OTP Expiry Note:**
+
+- Admins must re-enter the OTP if they exit the dashboard UI or if the OTP validity period (default: 10 minutes) expires. This ensures that only actively verified admins can access the dashboard at any time.
+
+---
+
+### Admin: Request OTP
+
+**Endpoint:** `POST /api/admin/request-otp`
+
+**Description:** Generate and send a One-Time Password (OTP) via email to a registered admin for dashboard login.
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+Origin: <allowed-origin>
+```
+
+*(Note: <allowed-origin> must be one of the domains listed in the Authentication section above, e.g., http://localhost:5173, https://frameforge.one, etc.)*
+
+**Request Body:**
+
+```json
+{
+  "email": "admin@example.com"
+}
+```
+
+**Response (200 - Success):**
+
+```json
+{
+  "success": true,
+  "email": "admin@example.com",
+  "expiresAt": "2026-04-20T10:25:00.000Z",
+  "expiresInMinutes": 10,
+  "emailSent": true
+}
+```
+
+**Error Responses:**
+
+- 400: `{ "error": "Email is required" }`
+- 400: `{ "error": "Invalid content type" }` (Must start with `application/json`)
+- 403: `{ "error": "Email is not a registered admin" }`
+- 403: `{ "error": "Origin not allowed" }`
+- 429: `{ "error": "Too many OTP requests", "retryAfterSeconds": 30 }`
+- 500: `{ "error": "Failed to send OTP email" }`
+
+---
+
+### Admin: Verify OTP
+
+**Endpoint:** `POST /api/admin/verify-otp`
+
+**Description:** Verify the 6-digit code sent to the admin email.
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+Origin: http://localhost:5173
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "admin@example.com",
+  "otp": "123456"
+}
+```
+
+**Response (200 - Success):**
+
+```json
+{
+  "success": true,
+  "verified": true,
+  "admin": {
+    "email": "admin@example.com",
+    "name": "Admin Name"
+  }
+}
+```
+
+**Error Responses:**
+
+- 400: `{ "error": "Email and verification code are required" }`
+- 400: `{ "error": "Verification code expired. Please request a new one." }`
+- 400: `{ "error": "Incorrect verification code" }`
+- 403: `{ "error": "Access denied" }` (Email is not a registered admin)
+- 404: `{ "error": "No verification request found for this email" }`
+- 500: `{ "error": "Unable to verify OTP" }`
+
+---
+
+### Admin: Register New Admin
+
+**Endpoint:** `POST /api/admin/register`
+
+**Description:** Register a new admin. Upon success, a welcome email with a link to the dashboard is sent to the new admin.
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+Origin: http://localhost:5173
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "newadmin@example.com",
+  "name": "New Admin"
+}
+```
+
+**Response (200 - Success):**
+
+```json
+{
+  "success": true,
+  "email": "newadmin@example.com",
+  "name": "New Admin"
+}
+```
+
+**Error Responses:**
+
+- 400: `{ "error": "Email and name are required" }`
+- 401: `{ "error": "Unauthorized" }`
+- 409: `{ "error": "Failed to register admin (may already exist)" }`
+- 429: `{ "error": "Too many registration requests", "retryAfterSeconds": 30 }`
+
+---
+
+### Admin: List Administrators
+
+**Endpoint:** `GET /api/admin/list`
+
+**Description:** Retrieve a list of all registered administrators.
+
+**Request Headers:**
+
+```
+Origin: http://localhost:5173
+```
+
+**Response (200 - Success):**
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "admin@example.com",
+    "name": "Admin Name",
+    "created_at": "2026-04-20T10:25:00.000Z",
+    "updated_at": "2026-04-20T10:25:00.000Z"
+  }
+]
+```
+
+**Error Responses:**
+
+- 401: `{ "error": "Unauthorized" }`
+- 403: `{ "error": "Origin not allowed" }`
+- 500: `{ "error": "Failed to fetch administrators" }`
+
+---
+
+### Admin: Delete Administrator
+
+**Endpoint:** `DELETE /api/admin/delete`
+
+**Description:** Remove an administrator from the system by email.
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+Origin: http://localhost:5173
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "admin@example.com"
+}
+```
+
+**Response (200 - Success):**
+
+```json
+{
+  "success": true,
+  "email": "admin@example.com"
+}
+```
+
+**Error Responses:**
+
+- 400: `{ "error": "Admin email is required" }`
+- 401: `{ "error": "Unauthorized" }`
+- 403: `{ "error": "Cannot delete the only remaining administrator" }`
+- 500: `{ "error": "Failed to remove administrator" }`
+
+---
+
+## Admin Database Tables
+
+See `sql/admin_tables.sql`:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_otps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) NOT NULL UNIQUE REFERENCES admin_users(email) ON DELETE CASCADE,
+  otp_code_hash VARCHAR(255),
+  otp_expires_at TIMESTAMP WITH TIME ZONE,
+  otp_verified_at TIMESTAMP WITH TIME ZONE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_attempts INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+---
+
+**Security Measures:**
+
+- Strict CORS (admin origins only)
+- Rate limiting (per IP/email)
+- OTPs hashed and never stored in plaintext
+- Session binding and expiration
+- Only registered admins can request OTP
+- Only authenticated admins can register new admins
+- All validation and error handling as in user flow
+
+---
+
 # AI Image Generation API Documentation
 
 Complete API reference for the AI Image Generation service. These APIs enable email verification, image generation, and AI-powered image-to-Arcane-style transformation.
@@ -5,8 +265,10 @@ Complete API reference for the AI Image Generation service. These APIs enable em
 ## Base URL
 
 ```
+https://memento.frameforge.one
 https://frameforge.one
 http://localhost:3000  (development)
+http://localhost:5173  (development)
 ```
 
 ## Authentication
@@ -14,9 +276,12 @@ http://localhost:3000  (development)
 All requests must include the `Origin` header from an allowed domain:
 
 **Allowed Origins:**
+
 - `http://localhost:3000`
 - `http://localhost:5173`
 - `https://frameforge.one`
+- `https://www.frameforge.one`
+- `https://memento.frameforge.one`
 - `https://frameforge-mauve.vercel.app`
 
 Requests from other origins will be rejected with a CORS error.
@@ -32,12 +297,14 @@ Requests from other origins will be rejected with a CORS error.
 **Description:** Generate and send a One-Time Password (OTP) to the user's email.
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 Origin: <allowed-origin>
 ```
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com"
@@ -45,6 +312,7 @@ Origin: <allowed-origin>
 ```
 
 **Response (200 - Success):**
+
 ```json
 {
   "success": true,
@@ -60,13 +328,26 @@ Origin: <allowed-origin>
 **Error Responses:**
 
 - **400 Bad Request:**
+
   ```json
   { "error": "Email is required" }
   ```
 
-- **409 Conflict (Email Already Used):**
+- **409 Conflict (Already Completed):**
+
   ```json
-  { "error": "This email has already been used. Please use a different email." }
+  {
+    "error": "This email has already completed generation. Please use a different email."
+  }
+  ```
+
+- **429 Too Many Requests:**
+
+  ```json
+  {
+    "error": "Too many OTP requests. Please try again shortly.",
+    "retryAfterSeconds": 30
+  }
   ```
 
 - **500 Internal Server Error:**
@@ -75,6 +356,7 @@ Origin: <allowed-origin>
   ```
 
 **Example cURL:**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/request-otp \
   -H "Content-Type: application/json" \
@@ -83,24 +365,30 @@ curl -X POST http://localhost:3000/api/auth/request-otp \
 ```
 
 **Example JavaScript:**
+
 ```javascript
-const response = await fetch('/api/auth/request-otp', {
-  method: 'POST',
+const response = await fetch("/api/auth/request-otp", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Origin': window.location.origin,
+    "Content-Type": "application/json",
   },
-  body: JSON.stringify({ email: 'user@example.com' }),
+  body: JSON.stringify({ email: "user@example.com" }),
 });
 
 const data = await response.json();
 if (response.ok) {
-  console.log('OTP sent to:', data.email);
-  console.log('Expires in:', data.expiresInMinutes, 'minutes');
+  console.log("OTP sent to:", data.email);
+  console.log("Expires in:", data.expiresInMinutes, "minutes");
 } else {
-  console.error('Error:', data.error);
+  console.error("Error:", data.error);
 }
 ```
+
+**Behavior Note (current):**
+
+- If the email has an existing request that is **not completed**, requesting OTP again will update the existing row (upsert) and send a new code.
+- Only emails with `generation_status = completed` are rejected with `409`.
+- Upon successful generation, the final image is automatically sent to the user's email with a download link.
 
 ---
 
@@ -111,12 +399,14 @@ if (response.ok) {
 **Description:** Verify the OTP code sent to the user's email.
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 Origin: <allowed-origin>
 ```
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -125,6 +415,7 @@ Origin: <allowed-origin>
 ```
 
 **Response (200 - Success):**
+
 ```json
 {
   "success": true,
@@ -136,31 +427,45 @@ Origin: <allowed-origin>
 **Error Responses:**
 
 - **400 Bad Request (Invalid OTP Format):**
+
   ```json
   { "error": "Enter the 6-digit verification code" }
   ```
 
 - **400 Bad Request (OTP Expired):**
+
   ```json
   { "error": "Verification code expired. Request a new code." }
   ```
 
 - **400 Bad Request (Incorrect OTP):**
+
   ```json
   { "error": "Incorrect verification code" }
   ```
 
 - **404 Not Found:**
+
   ```json
   { "error": "No OTP request found for this email" }
   ```
 
 - **500 Internal Server Error:**
+
   ```json
   { "error": "Unable to verify OTP" }
   ```
 
+- **429 Too Many Requests:**
+  ```json
+  {
+    "error": "Too many verification attempts. Please wait and try again.",
+    "retryAfterSeconds": 30
+  }
+  ```
+
 **Example cURL:**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/verify-otp \
   -H "Content-Type: application/json" \
@@ -169,24 +474,24 @@ curl -X POST http://localhost:3000/api/auth/verify-otp \
 ```
 
 **Example JavaScript:**
+
 ```javascript
-const response = await fetch('/api/auth/verify-otp', {
-  method: 'POST',
+const response = await fetch("/api/auth/verify-otp", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Origin': window.location.origin,
+    "Content-Type": "application/json",
   },
-  body: JSON.stringify({ 
-    email: 'user@example.com', 
-    otp: '123456' 
+  body: JSON.stringify({
+    email: "user@example.com",
+    otp: "123456",
   }),
 });
 
 const data = await response.json();
 if (response.ok && data.verified) {
-  console.log('Email verified! Request ID:', data.requestId);
+  console.log("Email verified! Request ID:", data.requestId);
 } else {
-  console.error('Verification failed:', data.error);
+  console.error("Verification failed:", data.error);
 }
 ```
 
@@ -199,11 +504,13 @@ if (response.ok && data.verified) {
 **Description:** Upload a photo and generate an Arcane-style AI illustration with background merging.
 
 **Request Headers:**
+
 ```
 Origin: <allowed-origin>
 ```
 
 **Request Body (Form Data):**
+
 ```
 photo: <File>              - Image file (PNG, JPEG, WEBP)
 email: string              - User's verified email
@@ -214,19 +521,24 @@ gender: string (optional)  - "male", "female", or "neutral" (default: "neutral")
 ```
 
 **Response (200 - Success):**
+
 ```json
 {
   "success": true,
+  "uploadedImage": "https://.../uploads/upload-1713607500000.png",
+  "generatedImage": "https://.../generated/generated-1713607500000.png",
+  "finalImage": "/final/final-1713607500000.png",
+  "finalImageUrl": "https://memento.frameforge.one/api/assets/download?url=...",
+  "dbId": "550e8400-e29b-41d4-a716-446655440000",
   "requestId": "550e8400-e29b-41d4-a716-446655440000",
-  "generatedImageUrl": "https://s3.example.com/generated/generated-1713607500000.png",
-  "finalImageUrl": "https://s3.example.com/final/final-1713607500000.png",
-  "status": "completed"
+  "prompt": "..."
 }
 ```
 
 **Error Responses:**
 
 - **400 Bad Request (Missing Fields):**
+
   ```json
   { "error": "Email is required" }
   { "error": "No photo provided" }
@@ -235,64 +547,83 @@ gender: string (optional)  - "male", "female", or "neutral" (default: "neutral")
   ```
 
 - **400 Bad Request (Invalid Image Type):**
+
   ```json
   { "error": "Only PNG, JPEG/JPG, or WEBP images are allowed" }
   ```
 
 - **403 Forbidden (Email Not Verified):**
+
   ```json
   { "error": "Email is not verified yet" }
   ```
 
 - **404 Not Found:**
+
   ```json
   { "error": "No verified request found for this email" }
   { "error": "No matching verified request found" }
   ```
 
 - **500 Internal Server Error:**
+
   ```json
   { "error": "Unable to validate session" }
-  { "error": "Generation failed" }
+  { "error": "Internal Server Error" }
+  ```
+
+- **504 Gateway Timeout:**
+
+  ```json
+  {
+    "error": "Generation timed out due to upstream inactivity. Please try again with a shorter prompt or retry."
+  }
+  ```
+
+- **429 Too Many Requests:**
+  ```json
+  {
+    "error": "Too many generation requests. Please wait and retry.",
+    "retryAfterSeconds": 30
+  }
   ```
 
 **Example JavaScript (with Fetch):**
+
 ```javascript
 // After email verification (verify-otp succeeded)
 const formData = new FormData();
-formData.append('photo', photoFile); // File object from input
-formData.append('email', 'user@example.com');
-formData.append('requestId', requestId); // from verify-otp response
-formData.append('name', 'John Doe');
-formData.append('organization', 'Acme Corp');
-formData.append('gender', 'male'); // optional: 'male', 'female', 'neutral'
+formData.append("photo", photoFile); // File object from input
+formData.append("email", "user@example.com");
+formData.append("requestId", requestId); // from verify-otp response
+formData.append("name", "John Doe");
+formData.append("organization", "Acme Corp");
+formData.append("gender", "male"); // optional: 'male', 'female', 'neutral'
 
-const response = await fetch('/api/generate', {
-  method: 'POST',
-  headers: {
-    'Origin': window.location.origin,
-  },
+const response = await fetch("/api/generate", {
+  method: "POST",
   body: formData,
 });
 
 const data = await response.json();
 if (response.ok && data.success) {
-  console.log('Generated image:', data.generatedImageUrl);
-  console.log('Final image:', data.finalImageUrl);
+  console.log("Generated image:", data.generatedImage);
+  console.log("Final image:", data.finalImageUrl);
 } else {
-  console.error('Generation failed:', data.error);
+  console.error("Generation failed:", data.error);
 }
 ```
 
 **Image Upload Handling:**
+
 ```javascript
 // From HTML file input
-const fileInput = document.getElementById('photoInput');
+const fileInput = document.getElementById("photoInput");
 const file = fileInput.files[0];
 
 // Or create from canvas
 canvas.toBlob((blob) => {
-  const file = new File([blob], 'photo.png', { type: 'image/png' });
+  const file = new File([blob], "photo.png", { type: "image/png" });
   // Use file in formData
 });
 ```
@@ -306,12 +637,14 @@ canvas.toBlob((blob) => {
 **Description:** Clears previously generated image fields for an already-verified email request so the same email can generate again.
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 Origin: <allowed-origin>
 ```
 
 **Request Body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -322,6 +655,7 @@ Origin: <allowed-origin>
 `requestId` is optional. If omitted, the latest request for the email is reset.
 
 **Response (200 - Success):**
+
 ```json
 {
   "success": true,
@@ -335,26 +669,39 @@ Origin: <allowed-origin>
 **Error Responses:**
 
 - **400 Bad Request:**
+
   ```json
   { "error": "Email is required" }
   ```
 
 - **403 Forbidden:**
+
   ```json
   { "error": "Email is not verified for this request" }
   ```
 
 - **404 Not Found:**
+
   ```json
   { "error": "No request found for this email" }
   ```
 
 - **500 Internal Server Error:**
+
   ```json
   { "error": "Unable to reset generation request" }
   ```
 
+- **429 Too Many Requests:**
+  ```json
+  {
+    "error": "Too many reset requests. Please wait before trying again.",
+    "retryAfterSeconds": 30
+  }
+  ```
+
 **Example cURL:**
+
 ```bash
 curl -X POST http://localhost:3000/api/generate/reset \
   -H "Content-Type: application/json" \
@@ -371,16 +718,19 @@ curl -X POST http://localhost:3000/api/generate/reset \
 **Description:** Receive generation completion callbacks from the AI service (typically used with webhook/async flows).
 
 **Query Parameters:**
+
 ```
 jobId: string  - Unique job identifier
 ```
 
 **Request Headers:**
+
 ```
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "status": "SUCCESS",
@@ -391,6 +741,7 @@ Content-Type: application/json
 ```
 
 **Response (200 - Success):**
+
 ```json
 {
   "success": true,
@@ -402,6 +753,7 @@ Content-Type: application/json
 **Error Responses:**
 
 - **400 Bad Request:**
+
   ```json
   { "error": "Job ID not provided" }
   ```
@@ -413,9 +765,41 @@ Content-Type: application/json
 
 ---
 
+### 5. Download Final Asset (CORS-safe Proxy)
+
+**Endpoint:** `GET /api/assets/download`
+
+**Description:** Server-side proxy for S3/final images to avoid browser CORS failures and optionally force download.
+
+**Query Parameters:**
+
+```
+url: string (required)        - HTTPS asset URL
+download: "1" (optional)     - Force attachment download
+filename: string (optional)   - Download filename (max 120 chars)
+apiKey: string (optional)     - Required only if DOWNLOAD_API_KEY(S) is configured
+```
+
+**Headers (optional auth alternative):**
+
+```
+x-download-api-key: <key>
+```
+
+**Common Errors:**
+
+- `400` invalid/missing query fields
+- `401` unauthorized key
+- `403` asset host not allowed
+- `429` rate limited
+- `502` upstream storage fetch failed
+
+---
+
 ## Usage Flow
 
 ### Step 1: Request OTP
+
 ```
 POST /api/auth/request-otp
 Body: { "email": "user@example.com" }
@@ -424,6 +808,7 @@ Response: { "requestId": "...", "expiresInMinutes": 10 }
 ```
 
 ### Step 2: Verify OTP (User enters 6-digit code from email)
+
 ```
 POST /api/auth/verify-otp
 Body: { "email": "user@example.com", "otp": "123456" }
@@ -432,6 +817,7 @@ Response: { "verified": true, "requestId": "..." }
 ```
 
 ### Step 3: Generate Image
+
 ```
 POST /api/generate
 Body: (FormData)
@@ -446,6 +832,7 @@ Response: { "success": true, "finalImageUrl": "..." }
 ```
 
 ### Optional Step: Reset and Regenerate For Same Email
+
 ```
 POST /api/generate/reset
 Body: { "email": "user@example.com", "requestId": "<existing-request-id>" }
@@ -494,14 +881,16 @@ EXPOSE_OTP_IN_RESPONSE=false (set to 'true' for testing)
 All API responses follow a standard format:
 
 **Success (2xx):**
+
 ```json
 {
   "success": true,
-  "data": { ... }
+  "...endpoint specific fields...": "..."
 }
 ```
 
 **Error (4xx/5xx):**
+
 ```json
 {
   "error": "Human-readable error message"
@@ -509,6 +898,7 @@ All API responses follow a standard format:
 ```
 
 **CORS Errors (400):**
+
 ```
 Origin header not allowed. Ensure your domain is in the allowlist.
 ```
@@ -523,14 +913,20 @@ Origin header not allowed. Ensure your domain is in the allowlist.
 4. **Rate Limiting:** OTP attempts are tracked (verification_attempts field).
 5. **Expiration:** OTPs expire after 10 minutes.
 6. **Session Binding:** OTP verification is tied to email + requestId.
+7. **Strict Validation:** Unexpected JSON/form/query fields are rejected.
+8. **Secret Safety:** API/download key checks use timing-safe comparison.
 
 ---
 
 ## Rate Limits
 
-- **OTP Request:** One per unique email address
-- **OTP Verification:** Unlimited attempts (tracked in verification_attempts)
-- **Image Generation:** Depends on OpenRouter API limits (typically 5-10 requests/min)
+- **OTP Request (`/api/auth/request-otp`):** 20/10min per IP, 5/10min per email
+- **OTP Verify (`/api/auth/verify-otp`):** 40/10min per IP, 10/10min per email
+- **Generate (`/api/generate`):** 15/10min per IP, 5/10min per email
+- **Reset (`/api/generate/reset`):** 20/10min per IP, 8/10min per email
+- **Asset Download (`/api/assets/download`):** 120/min per IP, 60/min per key/url
+- **Callback GET:** 120/min per IP, 60/min per jobId
+- **Callback POST:** 60/min per IP, 30/min per jobId
 
 ---
 
@@ -568,11 +964,10 @@ CREATE TABLE image_generation_requests (
 ```typescript
 // lib/api.ts
 export async function requestOtp(email: string) {
-  const response = await fetch('/api/auth/request-otp', {
-    method: 'POST',
+  const response = await fetch("/api/auth/request-otp", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ email }),
   });
@@ -580,11 +975,10 @@ export async function requestOtp(email: string) {
 }
 
 export async function verifyOtp(email: string, otp: string) {
-  const response = await fetch('/api/auth/verify-otp', {
-    method: 'POST',
+  const response = await fetch("/api/auth/verify-otp", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Origin': window.location.origin,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, otp }),
   });
@@ -597,21 +991,18 @@ export async function generateImage(
   requestId: string,
   name: string,
   organization: string,
-  gender?: string
+  gender?: string,
 ) {
   const formData = new FormData();
-  formData.append('photo', photo);
-  formData.append('email', email);
-  formData.append('requestId', requestId);
-  formData.append('name', name);
-  formData.append('organization', organization);
-  if (gender) formData.append('gender', gender);
+  formData.append("photo", photo);
+  formData.append("email", email);
+  formData.append("requestId", requestId);
+  formData.append("name", name);
+  formData.append("organization", organization);
+  if (gender) formData.append("gender", gender);
 
-  const response = await fetch('/api/generate', {
-    method: 'POST',
-    headers: {
-      'Origin': window.location.origin,
-    },
+  const response = await fetch("/api/generate", {
+    method: "POST",
     body: formData,
   });
   return response.json();
@@ -735,14 +1126,14 @@ export function ImageGeneration() {
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| CORS error | Ensure your domain is in the allowed origins list |
-| "Email already used" | Use a different email address or contact support |
-| OTP expires too quickly | OTPs expire after 10 minutes; request a new one |
-| Image upload fails | Ensure file is PNG, JPEG, or WEBP format (<10MB) |
-| Generation times out | Try a smaller/simpler image; retries occur automatically |
-| "Email not verified" | Complete the OTP verification step first |
+| Issue                                         | Solution                                                     |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| CORS error                                    | Ensure your domain is in the allowed origins list            |
+| "This email has already completed generation" | Use a different email, or use your existing generated result |
+| OTP expires too quickly                       | OTPs expire after 10 minutes; request a new one              |
+| Image upload fails                            | Ensure file is PNG, JPEG, or WEBP format (<10MB)             |
+| Generation times out                          | Try a smaller/simpler image; retries occur automatically     |
+| "Email not verified"                          | Complete the OTP verification step first                     |
 
 ---
 
@@ -752,5 +1143,5 @@ For API issues or integration questions, contact: `support@frameforge.one`
 
 ---
 
-**Last Updated:** April 20, 2026  
+**Last Updated:** April 22, 2026  
 **API Version:** 1.0.0
