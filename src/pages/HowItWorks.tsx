@@ -28,7 +28,7 @@ const steps = [
     icon: Sparkles,
     title: "AI Magic",
     description: "Our AI instantly processes the photo, applying your custom frame design and generating any visual elements you configured.",
-    image: "/sample-frame-1.jpg"
+    image: "/AI Magic.mp4"
   },
   {
     number: "05",
