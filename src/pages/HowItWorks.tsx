@@ -47,7 +47,7 @@ export const HowItWorks = () => {
                 {/* Background Atmosphere */}
                 <div className="absolute inset-0 z-0 pointer-events-none select-none">
                     <div className="absolute top-0 left-0 w-full h-full opacity-40 mix-blend-screen">
-                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" />
+                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" loading="lazy" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505] z-10"></div>
                 </div>
@@ -101,12 +101,13 @@ export const HowItWorks = () => {
                                             loop 
                                             muted 
                                             playsInline
+                                            preload="metadata"
                                             className="w-full h-auto block transform transition-transform duration-700 group-hover:scale-[1.02]"
                                         />
                                     ) : (
-                                        <img 
                                             src={step.image} 
                                             alt={step.title} 
+                                            loading="lazy"
                                             className={`w-full h-auto block transform transition-transform duration-700 ${step.title === "Upload" ? "scale-[1.2]" : "group-hover:scale-[1.02]"}`}
                                         />
                                     )}

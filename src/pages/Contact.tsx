@@ -153,6 +153,7 @@ export const Contact = () => {
               src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024"
               alt="Atmosphere"
               className="w-full h-full object-cover object-center opacity-80"
+              loading="lazy"
             />
           </div>
         </div>
