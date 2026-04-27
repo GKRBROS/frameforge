@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
   ShieldCheck, 
-  Mail, 
+  Smartphone, 
   RotateCcw, 
   LogOut, 
   Users, 
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { PhoneInput } from "@/components/PhoneInput";
 import { useAdminAuth } from "@/lib/AdminAuthContext";
 import { adminApi } from "@/lib/adminApi";
 import { AdminCard, AdminButton, AdminInput } from "@/components/AdminUI";
@@ -24,14 +25,14 @@ export const AdminDashboard = () => {
   const { session, login, verify, logout, isAuthenticated, isLoading: authLoading } = useAdminAuth();
   
   const [activeTab, setActiveTab] = useState<"admins" | "users">("users");
-  const [authEmail, setAuthEmail] = useState("");
+  const [authPhone, setAuthPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // User Reset State
-  const [targetEmail, setTargetEmail] = useState("");
+  const [targetPhone, setTargetPhone] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
   if (authLoading) {
@@ -43,12 +44,12 @@ export const AdminDashboard = () => {
   }
 
   const handleSendOtp = async () => {
-    if (!authEmail) return toast.error("Email is required");
+    if (!authPhone) return toast.error("Phone number is required");
     setIsBusy(true);
-    const success = await login(authEmail);
+    const success = await login(authPhone);
     if (success) {
       setIsOtpSent(true);
-      toast.success("OTP sent to your email");
+      toast.success("OTP sent to your phone");
     } else {
       toast.error("Access denied. Please check your credentials.");
     }
@@ -68,12 +69,12 @@ export const AdminDashboard = () => {
   };
 
   const handleResetUser = async () => {
-    if (!targetEmail) return toast.error("User email is required");
+    if (!targetPhone) return toast.error("User phone number is required");
     setIsResetting(true);
-    const response = await adminApi.resetUserGeneration(targetEmail);
+    const response = await adminApi.resetUserGeneration(targetPhone);
     if (response.success) {
-      toast.success(`Reset generation for ${targetEmail}`);
-      setTargetEmail("");
+      toast.success(`Reset generation for ${targetPhone}`);
+      setTargetPhone("");
     } else {
       toast.error(response.error || "Failed to reset generation");
     }
@@ -83,7 +84,7 @@ export const AdminDashboard = () => {
   // Login View
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] p-6 relative overflow-hidden">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] p-6 relative">
         {/* Abstract Background */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
           <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-orange-500/30 rounded-full blur-[120px]" />
@@ -96,18 +97,19 @@ export const AdminDashboard = () => {
               <ShieldCheck className="w-8 h-8 text-orange-500" />
             </div>
             <h1 className="text-2xl font-bold text-white font-stack">Admin Access</h1>
-            <p className="text-sm text-neutral-500 mt-2">Enter your authorized email to receive an access code</p>
+            <p className="text-sm text-neutral-500 mt-2">Enter your authorized mobile number to receive an access code</p>
           </div>
 
           {!isOtpSent ? (
             <div className="space-y-4">
-              <AdminInput 
-                label="Authorized Email"
-                placeholder="admin@frameforge.one"
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-              />
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Authorized Mobile Number</label>
+                <PhoneInput 
+                  value={authPhone}
+                  onChange={(val) => setAuthPhone(val)}
+                  placeholder="Enter authorized number"
+                />
+              </div>
               <AdminButton 
                 className="w-full h-12" 
                 onClick={handleSendOtp}
@@ -138,7 +140,7 @@ export const AdminDashboard = () => {
                   className="text-xs text-neutral-500 hover:text-white transition-colors py-2"
                   onClick={() => setIsOtpSent(false)}
                 >
-                  Back to email entry
+                  Back to phone entry
                 </button>
               </div>
             </div>
@@ -215,7 +217,7 @@ export const AdminDashboard = () => {
                 <User className="w-5 h-5 text-neutral-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold truncate">{session?.email}</p>
+                <p className="text-xs font-bold truncate">{session?.phone}</p>
                 <p className="text-[10px] text-neutral-500">Super Administrator</p>
               </div>
             </div>
@@ -251,17 +253,17 @@ export const AdminDashboard = () => {
               <AdminCard className="p-8">
                 <div className="max-w-xl space-y-6">
                   <div className="space-y-4">
-                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">User Email Address</p>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <AdminInput 
-                        placeholder="user@example.com"
-                        value={targetEmail}
-                        onChange={(e) => setTargetEmail(e.target.value)}
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">User Mobile Number</p>
+                    <div className="flex flex-col gap-4">
+                      <PhoneInput 
+                        value={targetPhone}
+                        onChange={(val) => setTargetPhone(val)}
+                        placeholder="Enter user phone number"
                         className="flex-1"
                       />
                       <AdminButton 
                         variant="secondary"
-                        className="whitespace-nowrap h-[42px] px-8"
+                        className="whitespace-nowrap h-[56px] px-8 sm:w-auto w-full"
                         onClick={handleResetUser}
                         isLoading={isResetting}
                       >

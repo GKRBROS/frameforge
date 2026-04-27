@@ -1,36 +1,39 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 
 export const Navbar = () => {
+  const location = useLocation();
+  const isDemo = location.pathname === '/demo';
+
   return (
-    <nav className="fixed top-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-[1200px] px-6">
-      <div className="bg-white rounded-full px-6 py-2.5 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-neutral-100">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12c2.5-4 5.5-4 8 0s5.5 4 8 0" />
-            </svg>
-          </div>
-          <span className="text-xl font-bold text-neutral-900 tracking-tight font-stack">Habitline</span>
-        </div>
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full px-6 py-8">
+      <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-1 group">
+          <span className="text-2xl font-bold text-white tracking-tighter font-serif">
+            FrameForge<span className="text-red-600">.</span>
+          </span>
+        </Link>
         
         <div className="hidden md:flex items-center gap-10">
-          <a href="#" className="text-sm font-medium text-neutral-400 hover:text-neutral-900 transition-colors">What's inside</a>
-          <a href="#" className="text-sm font-medium text-neutral-400 hover:text-neutral-900 transition-colors">Use case</a>
-          <a href="#" className="text-sm font-medium text-neutral-400 hover:text-neutral-900 transition-colors">Metrics</a>
-          <a href="#" className="text-sm font-medium text-neutral-400 hover:text-neutral-900 transition-colors">Smart Assist</a>
+          <Link to="/" className="text-xs font-medium text-gray-400 hover:text-white transition-colors">Home</Link>
+          <Link to="/services" className="text-xs font-medium text-gray-400 hover:text-white transition-colors">Services</Link>
+          <Link to="/how-it-works" className="text-xs font-medium text-gray-400 hover:text-white transition-colors">How It Works</Link>
+          <Link to="/demo" className="text-xs font-medium text-gray-400 hover:text-white transition-colors">Demo</Link>
+          <Link to="/integration" className="text-xs font-medium text-gray-400 hover:text-white transition-colors">Integration</Link>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="w-10 h-10 bg-neutral-50 rounded-full flex items-center justify-center hover:bg-neutral-100 transition-colors border border-neutral-100">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-700">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
-            </svg>
-          </button>
-          <button className="w-10 h-10 bg-neutral-50 rounded-full flex items-center justify-center hover:bg-neutral-100 transition-colors border border-neutral-100">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-700">
-              <path d="M5 3l14 9-14 9V3z" />
-            </svg>
+        <div className="flex items-center gap-4">
+          {!isDemo && (
+            <Link 
+              to="/demo" 
+              className="px-6 py-2.5 bg-white text-black rounded-full text-xs font-bold hover:bg-gray-200 transition-all active:scale-95 shadow-lg shadow-white/5"
+            >
+              Get Started
+            </Link>
+          )}
+          <button className="md:hidden text-white">
+            <Menu className="w-6 h-6" />
           </button>
         </div>
       </div>

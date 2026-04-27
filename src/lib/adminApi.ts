@@ -4,7 +4,7 @@ const BASE_URL = "https://memento.frameforge.one/api";
 
 export interface AdminUser {
   id: string;
-  email: string;
+  phone: string;
   name: string;
   created_at: string;
   updated_at: string;
@@ -45,52 +45,50 @@ class AdminApiService {
   }
 
   // Auth Endpoints
-  async requestOtp(email: string) {
-    return this.request<{ email: string; expiresInMinutes: number; emailSent: boolean }>(
+  async requestOtp(phone: string) {
+    return this.request<{ phone: string; expiresInMinutes: number; smsSent: boolean }>(
       "/admin/request-otp",
       {
         method: "POST",
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ phone }),
       }
     );
   }
 
-  async verifyOtp(email: string, otp: string) {
-    return this.request<{ verified: boolean; admin: { email: string; name: string } }>(
+  async verifyOtp(phone: string, otp: string) {
+    return this.request<{ verified: boolean; admin: { phone: string; name: string } }>(
       "/admin/verify-otp",
       {
         method: "POST",
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ phone, otp }),
       }
     );
   }
 
   // Admin Management
-  async registerAdmin(email: string, name: string) {
+  async registerAdmin(phone: string, name: string) {
     return this.request<AdminUser>("/admin/register", {
       method: "POST",
-      body: JSON.stringify({ email, name }),
+      body: JSON.stringify({ phone, name }),
     });
   }
 
-  // Note: List/Delete/Update endpoints are not explicitly documented with endpoints in MD 
-  // but implied by CRUD requirements. Using standard REST patterns.
   async listAdmins() {
     return this.request<AdminUser[]>("/admin/list", { method: "GET" });
   }
 
-  async deleteAdmin(email: string) {
+  async deleteAdmin(phone: string) {
     return this.request<{ success: boolean }>("/admin/delete", {
       method: "DELETE",
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ phone }),
     });
   }
 
-  // User/Image management as implied by "Admin Dashboard" context
-  async resetUserGeneration(email: string, requestId?: string) {
+  // User/Image management
+  async resetUserGeneration(phone: string, requestId?: string) {
     return this.request<{ success: boolean; status: string }>("/generate/reset", {
       method: "POST",
-      body: JSON.stringify({ email, requestId }),
+      body: JSON.stringify({ phone, requestId }),
     });
   }
 }

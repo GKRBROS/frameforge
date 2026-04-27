@@ -1,110 +1,108 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Upload, Sparkles, CheckCircle2, ShieldCheck, Zap, ArrowRight } from 'lucide-react';
 
 export const AppMockup = () => {
   return (
     <div className="relative z-10 w-full max-w-[1200px] px-6 py-20">
       <div className="relative flex items-center justify-center">
-        {/* Central Mockup */}
-        <div className="relative z-20 w-[320px] h-[640px] bg-[#1a1a1a] rounded-[48px] border-[8px] border-neutral-800 shadow-2xl overflow-hidden p-6 font-google">
+        {/* Central Mockup - The Demo Interface */}
+        <div className="relative z-20 w-[320px] h-[640px] bg-[#050505] rounded-[48px] border-[8px] border-neutral-800 shadow-[0_32px_64px_rgba(0,0,0,0.5)] overflow-hidden p-6 font-sans">
           {/* Phone Top Bar */}
-          <div className="flex justify-between items-center mb-8 px-2">
-            <span className="text-white text-[11px] font-bold">Mon, 07:32</span>
+          <div className="flex justify-between items-center mb-10 px-2 opacity-40">
+            <span className="text-white text-[10px] font-bold tracking-tighter">Frame Forge OS</span>
             <div className="w-14 h-5 bg-black rounded-full" />
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded-full bg-white/10" />
-              <div className="w-4 h-4 rounded-full bg-white/10" />
+              <Zap className="w-3 h-3 text-white fill-white" />
+              <div className="w-3 h-3 rounded-full bg-white/20" />
             </div>
           </div>
           
-          <h2 className="text-white text-2xl font-bold mb-1 font-stack">Today Task</h2>
-          <p className="text-white/40 text-xs mb-8">3 of 8 habits done</p>
+          <div className="space-y-1 mb-8">
+            <h2 className="text-white text-2xl font-serif font-bold tracking-tight">AI Generation</h2>
+            <p className="text-[#FF4500] text-[10px] font-bold uppercase tracking-[0.2em]">Live Processing</p>
+          </div>
 
-          {/* Habit Cards */}
-          <div className="space-y-4">
+          {/* Process Steps */}
+          <div className="space-y-5">
             {[
-              { title: "Morning walk", time: "At least 15 minutes", progress: "85%", color: "bg-orange-400", subColor: "bg-orange-400/20", checked: false },
-              { title: "Drink 3 glasses of water", time: "Before 11:00 am", progress: "100%", color: "bg-emerald-400", subColor: "bg-emerald-400/20", checked: true },
-              { title: "Read 10 pages", time: "Evening focus block", progress: "67%", color: "bg-cyan-400", subColor: "bg-cyan-400/20", checked: false },
-            ].map((habit, i) => (
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex justify-between items-center group hover:bg-white/10 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full border border-white/20 flex items-center justify-center ${habit.checked ? 'bg-emerald-400 border-none' : ''}`}>
-                    {habit.checked && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    )}
+              { title: "Upload Portrait", status: "Completed", icon: Upload, active: false, done: true },
+              { title: "Identity Mapping", status: "Processing...", icon: ShieldCheck, active: true, done: false },
+              { title: "Cinematic Rendering", status: "Pending", icon: Sparkles, active: false, done: false },
+            ].map((step, i) => (
+              <div key={i} className={`rounded-2xl p-4 flex flex-col gap-3 transition-all duration-500 border ${step.active ? 'bg-[#FF4500]/5 border-[#FF4500]/20 shadow-lg shadow-[#FF4500]/5' : 'bg-white/[0.03] border-white/5'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step.done ? 'bg-emerald-500/20 text-emerald-500' : step.active ? 'bg-[#FF4500]/20 text-[#FF4500]' : 'bg-white/5 text-gray-500'}`}>
+                      <step.icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-bold ${step.active ? 'text-white' : 'text-gray-400'}`}>{step.title}</h4>
+                      <p className={`text-[9px] font-medium uppercase tracking-widest ${step.active ? 'text-[#FF4500] animate-pulse' : 'text-gray-600'}`}>{step.status}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-white text-sm font-bold">{habit.title}</h4>
-                    <p className="text-white/40 text-[10px]">{habit.time}</p>
-                  </div>
+                  {step.done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
-                <div className="text-right flex flex-col items-end gap-1">
-                  <span className="text-white/60 text-[9px] font-medium">{habit.progress}</span>
-                  <div className={`w-12 h-1 ${habit.subColor} rounded-full overflow-hidden`}>
-                    <div className={`h-full ${habit.color}`} style={{ width: habit.progress }} />
+                {step.active && (
+                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "0%" }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="h-full w-1/2 bg-[#FF4500]"
+                    />
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Bottom Card */}
-          <div className="absolute bottom-6 left-6 right-6 p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-white/60 text-xs font-bold uppercase tracking-wider">This week</span>
-              <div className="flex gap-1 items-end h-6">
-                {[4, 7, 5, 8, 4, 6, 9].map((h, i) => (
-                  <div key={i} className="w-1.5 bg-emerald-400/60 rounded-full" style={{ height: `${h * 2}px` }} />
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-white text-base font-bold">21 check-ins</p>
-                <p className="text-emerald-400 text-[10px] font-bold">+42% vs last week</p>
-              </div>
-            </div>
+          {/* Result Preview Mockup */}
+          <div className="mt-8 relative rounded-2xl overflow-hidden aspect-[4/5] bg-white/5 border border-white/5 group">
+             <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="w-12 h-12 text-[#FF4500]/20 animate-spin-slow" />
+             </div>
+             <div className="absolute bottom-4 left-4 right-4 p-3 bg-black/60 backdrop-blur-md rounded-xl border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="text-[10px] text-white font-bold uppercase tracking-widest">Asset Ready</p>
+                <p className="text-[8px] text-gray-400">Cinematic Male v2.4</p>
+             </div>
           </div>
         </div>
 
-        {/* Left Floating Card */}
-        <div className="absolute left-8 md:left-32 top-[40%] z-10 w-[200px] p-6 bg-[#1a1a1a]/90 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl hidden lg:block transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-          <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-lg shadow-orange-500/20">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-              <path d="M12 15l-2 3h4l-2-3zM12 2l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1 2-4z" />
-            </svg>
+        {/* Left Floating Card - Accuracy Stat */}
+        <div className="absolute left-8 md:left-32 top-[40%] z-10 w-[220px] p-6 bg-[#0a0a0a]/90 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl hidden lg:block transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+          <div className="w-14 h-14 bg-[#FF4500]/20 rounded-2xl flex items-center justify-center mb-5 mx-auto shadow-lg">
+            <ShieldCheck className="w-8 h-8 text-[#FF4500]" />
           </div>
-          <p className="text-white font-bold text-base text-center font-stack leading-tight">7-day streak <br /> unlocked</p>
+          <p className="text-white font-bold text-base text-center font-serif leading-tight">99.8% Identity Preservation</p>
+          <p className="text-gray-500 text-[10px] text-center mt-2 uppercase tracking-widest">Pixel-perfect mapping</p>
         </div>
 
-        {/* Right Floating Card */}
-        <div className="absolute right-8 md:right-32 top-[55%] z-10 w-[200px] p-6 bg-[#1a1a1a]/90 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl hidden lg:block transform rotate-3 hover:rotate-0 transition-transform duration-500">
-          <p className="text-white/60 text-[11px] font-bold text-center mb-6 uppercase tracking-wider">Today's goal: <br /> Complete 3 habits</p>
-          <div className="flex justify-center gap-3">
-            {[
-              { p: 65, icon: "🏃" },
-              { p: 87, icon: "🧹" },
-              { p: 94, icon: "📵" }
-            ].map((item, i) => (
-              <div key={i} className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center relative overflow-hidden group">
-                <div className="absolute inset-0 bg-white/5" style={{ top: `${100 - item.p}%` }} />
-                <span className="text-white text-lg relative z-10">{item.icon}</span>
-                <div className="absolute inset-0 border-2 border-emerald-400 rounded-full clip-path-progress" style={{ clipPath: `inset(${100 - item.p}% 0 0 0)` }} />
+        {/* Right Floating Card - Speed Stat */}
+        <div className="absolute right-8 md:right-32 top-[55%] z-10 w-[220px] p-6 bg-[#0a0a0a]/90 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl hidden lg:block transform rotate-3 hover:rotate-0 transition-transform duration-500">
+           <div className="flex justify-center mb-4">
+              <Zap className="w-10 h-10 text-emerald-500 fill-emerald-500/20" />
+           </div>
+          <p className="text-white font-bold text-base text-center font-serif leading-tight">Under 90 Seconds</p>
+          <p className="text-gray-500 text-[10px] text-center mt-2 uppercase tracking-widest">Ultra-fast generation</p>
+          <div className="mt-6 flex justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="w-1.5 h-6 bg-emerald-500/20 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ height: 0 }}
+                  animate={{ height: `${20 * i}%` }}
+                  transition={{ duration: 1, delay: i * 0.1 }}
+                  className="w-full bg-emerald-500"
+                />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Top-Right Label */}
-        <div className="absolute right-12 md:right-24 top-[30%] z-30 bg-white px-4 py-2 rounded-xl shadow-2xl hidden md:flex items-center gap-3 transform -rotate-6">
-          <span className="text-black text-xs font-bold uppercase tracking-tight">Get it for FREE</span>
-          <div className="w-6 h-6 bg-black rounded-lg flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-          </div>
+        {/* Top-Right Badge */}
+        <div className="absolute right-12 md:right-24 top-[30%] z-30 bg-[#FF4500] text-white px-5 py-2.5 rounded-full shadow-2xl hidden md:flex items-center gap-3 transform -rotate-6">
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Try the Demo</span>
+          <ArrowRight className="w-4 h-4" />
         </div>
       </div>
     </div>

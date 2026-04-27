@@ -2,13 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { AdminUser, adminApi } from "@/lib/adminApi";
 
 interface AdminSession {
-  email: string;
+  phone: string;
   verifiedAt: number;
 }
 
 interface AdminAuthContextType {
   session: AdminSession | null;
-  login: (email: string) => Promise<boolean>;
+  login: (phone: string) => Promise<boolean>;
   verify: (otp: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -23,7 +23,7 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authEmail, setAuthEmail] = useState("");
+  const [authPhone, setAuthPhone] = useState("");
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
@@ -42,19 +42,19 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string) => {
-    const response = await adminApi.requestOtp(email);
+  const login = async (phone: string) => {
+    const response = await adminApi.requestOtp(phone);
     if (response.success) {
-      setAuthEmail(email);
+      setAuthPhone(phone);
       return true;
     }
     return false;
   };
 
   const verify = async (otp: string) => {
-    const response = await adminApi.verifyOtp(authEmail, otp);
+    const response = await adminApi.verifyOtp(authPhone, otp);
     if (response.success && response.data?.verified) {
-      const newSession = { email: authEmail, verifiedAt: Date.now() };
+      const newSession = { phone: authPhone, verifiedAt: Date.now() };
       setSession(newSession);
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
       return true;

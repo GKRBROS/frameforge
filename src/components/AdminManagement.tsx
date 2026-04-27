@@ -14,6 +14,7 @@ import {
 import { toast } from "react-toastify";
 import { AdminUser, adminApi } from "@/lib/adminApi";
 import { AdminCard, AdminButton, AdminInput, AdminBadge } from "@/components/AdminUI";
+import { PhoneInput } from "@/components/PhoneInput";
 
 export const AdminManagement = () => {
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -23,7 +24,7 @@ export const AdminManagement = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   
   // New Admin Form State
-  const [newAdmin, setNewAdmin] = useState({ email: "", name: "" });
+  const [newAdmin, setNewAdmin] = useState({ phone: "", name: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -44,8 +45,13 @@ export const AdminManagement = () => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!newAdmin.email) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newAdmin.email)) newErrors.email = "Invalid email format";
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/; // E.164 format
+
+    if (!newAdmin.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!phoneRegex.test(newAdmin.phone)) {
+      newErrors.phone = "Invalid phone format (e.g., +91...)";
+    }
     
     if (!newAdmin.name) newErrors.name = "Name is required";
     else if (newAdmin.name.length < 2) newErrors.name = "Name must be at least 2 characters";
@@ -59,17 +65,17 @@ export const AdminManagement = () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    const response = await adminApi.registerAdmin(newAdmin.email, newAdmin.name);
+    const response = await adminApi.registerAdmin(newAdmin.phone, newAdmin.name);
     
     if (response.success) {
       toast.success("Administrator registered successfully");
       setIsModalOpen(false);
-      setNewAdmin({ email: "", name: "" });
+      setNewAdmin({ phone: "", name: "" });
       fetchAdmins();
     } else {
       toast.error(response.error || "Failed to register administrator");
       if (response.error?.includes("already exist")) {
-        setErrors({ email: "This email is already registered as an admin" });
+        setErrors({ phone: "This phone number is already registered as an admin" });
       }
     }
     setIsSubmitting(false);
@@ -89,7 +95,7 @@ export const AdminManagement = () => {
   };
 
   const filteredAdmins = admins.filter(admin => 
-    admin.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    admin.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
     admin.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -127,7 +133,7 @@ export const AdminManagement = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-white transition-colors" />
             <input 
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search by name or phone..."
               className="w-full h-full bg-white/5 border border-white/5 rounded-2xl pl-12 pr-4 text-sm text-white focus:outline-none focus:border-white/10 focus:bg-white/10 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -173,7 +179,7 @@ export const AdminManagement = () => {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-white">{admin.name}</p>
-                          <p className="text-xs text-neutral-500">{admin.email}</p>
+                          <p className="text-xs text-neutral-500">{admin.phone}</p>
                         </div>
                       </div>
                     </td>
@@ -186,7 +192,7 @@ export const AdminManagement = () => {
                     <td className="px-6 py-4 text-right">
                       <AdminButton 
                         variant="danger" 
-                        onClick={() => setDeleteConfirm(admin.email)}
+                        onClick={() => setDeleteConfirm(admin.phone)}
                         className="opacity-0 group-hover:opacity-100 p-2"
                         title="Remove Admin"
                       >
@@ -221,13 +227,15 @@ export const AdminManagement = () => {
                 onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
                 error={errors.name}
               />
-              <AdminInput 
-                label="Email Address"
-                placeholder="admin@frameforge.one"
-                value={newAdmin.email}
-                onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                error={errors.email}
-              />
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Mobile Number</label>
+                <PhoneInput 
+                  value={newAdmin.phone}
+                  onChange={(val) => setNewAdmin({ ...newAdmin, phone: val })}
+                  placeholder="Enter admin number"
+                />
+                {errors.phone && <p className="text-xs text-red-500 ml-1">{errors.phone}</p>}
+              </div>
 
               <div className="pt-2 flex gap-3">
                 <AdminButton 
