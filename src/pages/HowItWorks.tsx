@@ -105,6 +105,7 @@ export const HowItWorks = () => {
                                             className="w-full h-auto block transform transition-transform duration-700 group-hover:scale-[1.02]"
                                         />
                                     ) : (
+                                        <img 
                                             src={step.image} 
                                             alt={step.title} 
                                             loading="lazy"
