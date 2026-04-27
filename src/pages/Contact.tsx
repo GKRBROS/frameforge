@@ -19,7 +19,6 @@ export const Contact = () => {
     name: "",
     organization: "",
     eventName: "",
-    eventDate: "",
     attendees: 500,
     email: "",
     phone: "",
@@ -73,8 +72,6 @@ export const Contact = () => {
       newErrors.organization = "Organization is required";
     if (!formData.eventName.trim())
       newErrors.eventName = "Event Name is required";
-    if (!formData.eventDate.trim())
-      newErrors.eventDate = "Event Date is required";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
@@ -109,9 +106,6 @@ export const Contact = () => {
       .filter(([_, selected]) => selected)
       .map(([id, _]) => servicesOptions.find((s) => s.id === id)?.label || id);
 
-    // Format date from YYYY-MM-DD to DD/MM/YYYY
-    const formattedDate = formData.eventDate.split("-").reverse().join("/");
-
     try {
       const { data: response, error } = await supabase.functions.invoke(
         "send-contact-enquiry",
@@ -120,7 +114,6 @@ export const Contact = () => {
             name: formData.name,
             organization: formData.organization,
             eventName: formData.eventName,
-            eventDate: formattedDate,
             expectedAttendees: formData.attendees.toString(),
             email: formData.email,
             phone: formData.phone,
@@ -160,7 +153,6 @@ export const Contact = () => {
               src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024"
               alt="Atmosphere"
               className="w-full h-full object-cover object-center opacity-80"
-              loading="lazy"
             />
           </div>
         </div>
@@ -284,27 +276,7 @@ export const Contact = () => {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-col gap-2 relative">
-                  <label className="text-xs uppercase tracking-widest text-gray-500 ml-4 font-semibold">
-                    Event Date *
-                  </label>
-                  <input
-                    name="eventDate"
-                    type="date"
-                    value={formData.eventDate}
-                    onChange={handleChange}
-                    className={`bg-white/5 border ${errors.eventDate ? "border-red-500/50" : "border-white/10"} rounded-full px-6 py-4 text-white placeholder-white/20 focus:outline-none focus:border-[#FF4500]/50 transition-colors [color-scheme:dark]`}
-                  />
-                  {errors.eventDate && (
-                    <span className="absolute -bottom-6 left-6 text-[10px] text-red-400 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> {errors.eventDate}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="flex flex-col gap-2 relative">
+                <div className="flex flex-col gap-2">
                   <label className="text-xs uppercase tracking-widest text-gray-500 ml-4 font-semibold">
                     Expected Attendees
                   </label>

@@ -4,7 +4,6 @@ import { AnimatePresence } from "framer-motion";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Loader } from "./components/Loader";
-import { AdminAuthProvider } from "./lib/AdminAuthContext";
 
 const Layout = lazy(() =>
   import("./components/Layout").then((m) => ({ default: m.Layout })),
@@ -49,7 +48,7 @@ export const App = () => {
       </AnimatePresence>
 
       {!isLoading && (
-        <AdminAuthProvider>
+        <>
           <Router>
             <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
               <Routes>
@@ -60,8 +59,8 @@ export const App = () => {
                   <Route path="how-it-works" element={<HowItWorks />} />
                   <Route path="integration" element={<Integration />} />
                   <Route path="contact" element={<Contact />} />
+                  <Route path="admin" element={<AdminDashboard />} />
                 </Route>
-                <Route path="admin" element={<AdminDashboard />} />
               </Routes>
             </Suspense>
           </Router>
@@ -74,7 +73,7 @@ export const App = () => {
             draggable
             theme="dark"
           />
-        </AdminAuthProvider>
+        </>
       )}
     </>
   );

@@ -1,297 +1,471 @@
-import React, { useState } from "react";
-import { 
-  ShieldCheck, 
-  Smartphone, 
-  RotateCcw, 
-  LogOut, 
-  Users, 
-  BarChart3, 
-  Settings, 
-  Zap,
-  Menu,
-  X,
-  User,
-  Home
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { ShieldCheck, Mail, RotateCcw, LogOut, UserPlus, Trash2, Smartphone } from "lucide-react";
 import { toast } from "react-toastify";
 import { PhoneInput } from "@/components/PhoneInput";
-import { useAdminAuth } from "@/lib/AdminAuthContext";
 import { adminApi } from "@/lib/adminApi";
-import { AdminCard, AdminButton, AdminInput } from "@/components/AdminUI";
-import { AdminManagement } from "@/components/AdminManagement";
+
+const REQUEST_OTP_URL = "https://memento.frameforge.one/api/auth/request-otp";
+const VERIFY_OTP_URL = "https://memento.frameforge.one/api/auth/verify-otp";
+const RESET_GENERATE_URL = "https://memento.frameforge.one/api/generate/reset";
+
+
+const PRIMARY_ADMIN_EMAILS = [
+  "frameforgeone@gmail.com",
+  "jheroson0@gmail.com",
+];
+
+const ALLOWLIST_STORAGE_KEY = "frameforge.admin.allowedEmails";
+const SESSION_STORAGE_KEY = "frameforge.admin.session";
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
+const normalizeEmail = (value: string) => value.trim().toLowerCase();
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+type AdminSession = {
+  email: string;
+  verifiedAt: number;
+};
+
+const readAllowlist = () => {
+  try {
+    const raw = localStorage.getItem(ALLOWLIST_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as string[]) : [];
+    const normalized = parsed
+      .map((email) => normalizeEmail(email))
+      .filter((email) => isValidEmail(email));
+
+    // Always include both primary admin emails
+    for (const adminEmail of PRIMARY_ADMIN_EMAILS) {
+      if (isValidEmail(adminEmail)) {
+        normalized.push(normalizeEmail(adminEmail));
+      }
+    }
+
+    return Array.from(new Set(normalized));
+  } catch {
+    return PRIMARY_ADMIN_EMAILS.filter(isValidEmail).map(normalizeEmail);
+  }
+};
+
+const writeAllowlist = (emails: string[]) => {
+  localStorage.setItem(ALLOWLIST_STORAGE_KEY, JSON.stringify(emails));
+};
+
+const readSession = () => {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as AdminSession;
+    if (!parsed?.email || !parsed?.verifiedAt) {
+      return null;
+    }
+
+    if (Date.now() - parsed.verifiedAt > SESSION_TTL_MS) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
+    return {
+      email: normalizeEmail(parsed.email),
+      verifiedAt: parsed.verifiedAt,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeSession = (session: AdminSession) => {
+  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+};
+
+const clearSession = () => {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+};
+
+const getApiMessage = (data: unknown, fallback: string) => {
+  if (!data || typeof data !== "object") return fallback;
+  const bag = data as Record<string, unknown>;
+
+  const candidates = [bag.message, bag.error, bag.detail, bag.reason];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return fallback;
+};
 
 export const AdminDashboard = () => {
-  const { session, login, verify, logout, isAuthenticated, isLoading: authLoading } = useAdminAuth();
-  
-  const [activeTab, setActiveTab] = useState<"admins" | "users">("users");
-  const [authPhone, setAuthPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isBusy, setIsBusy] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [allowlist, setAllowlist] = useState<string[]>([]);
+  const [session, setSession] = useState<AdminSession | null>(null);
 
-  // User Reset State
-  const [targetPhone, setTargetPhone] = useState("");
+  const [authPhone, setAuthPhone] = useState("");
+  const [authOtp, setAuthOtp] = useState("");
+  const [requestId, setRequestId] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
+  const [newAllowedEmail, setNewAllowedEmail] = useState("");
+  const [targetEmail, setTargetEmail] = useState("");
+  const [targetRequestId, setTargetRequestId] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    const emails = readAllowlist();
+    writeAllowlist(emails);
+    setAllowlist(emails);
+
+    const existingSession = readSession();
+    if (!existingSession) return;
+
+    if (emails.includes(existingSession.email)) {
+      setSession(existingSession);
+      setAuthPhone(existingSession.email); // Keep email for session if that's what's stored, or update to phone
+      return;
+    }
+
+    clearSession();
+  }, []);
+
+  const isEmailAllowed = (email: string) => {
+    const normalized = normalizeEmail(email);
+    return allowlist.includes(normalized);
+  };
+
+
 
   const handleSendOtp = async () => {
-    if (!authPhone) return toast.error("Phone number is required");
-    setIsBusy(true);
-    const success = await login(authPhone);
-    if (success) {
-      setIsOtpSent(true);
-      toast.success("OTP sent to your phone");
-    } else {
-      toast.error("Access denied. Please check your credentials.");
+    if (!authPhone || authPhone.length < 10) {
+      toast.error("Enter a valid admin phone number.", { theme: "dark" });
+      return;
     }
-    setIsBusy(false);
+
+    // Note: We might want to check if the phone is allowed, 
+    // but the current allowlist logic uses emails. 
+    // For now, we'll proceed as the user requested "the number".
+
+    setIsSendingOtp(true);
+    try {
+      const response = await adminApi.requestOtp(authPhone);
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to send OTP.");
+      }
+
+      setRequestId(response.requestId || "");
+      setIsOtpSent(true);
+      const successMessage = response.data?.smsSent 
+        ? "OTP sent successfully to your phone." 
+        : "OTP has been sent.";
+      toast.info(successMessage, { theme: "dark" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to send OTP.";
+      toast.error(message, { theme: "dark" });
+    } finally {
+      setIsSendingOtp(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) return toast.error("OTP is required");
-    setIsBusy(true);
-    const success = await verify(otp);
-    if (success) {
-      toast.success("Authentication successful");
-    } else {
-      toast.error("Invalid or expired OTP");
+    const email = normalizeEmail(authEmail);
+    const otp = authOtp.trim();
+
+    if (!isValidEmail(email)) {
+      toast.error("Enter a valid admin email.", { theme: "dark" });
+      return;
     }
-    setIsBusy(false);
+
+    if (!isEmailAllowed(email)) {
+      toast.error("This email is not allowed to access the admin dashboard.", {
+        theme: "dark",
+      });
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      toast.error("Enter the 6-digit OTP code.", { theme: "dark" });
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      const response = await adminApi.verifyOtp(authPhone, otp);
+
+      if (!response.success || !response.data?.verified) {
+        throw new Error(response.error || "OTP verification failed.");
+      }
+
+      setRequestId(response.requestId || requestId);
+      const nextSession: AdminSession = {
+        email: authPhone, // Using phone as identifier for session
+        verifiedAt: Date.now(),
+      };
+
+      setRequestId(typeof data?.requestId === "string" ? data.requestId : requestId);
+      setSession(nextSession);
+      setAuthOtp("");
+      writeSession(nextSession);
+      toast.success("Admin OTP verified. Access granted.", { theme: "dark" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "OTP verification failed.";
+      toast.error(message, { theme: "dark" });
+    } finally {
+      setIsVerifyingOtp(false);
+    }
   };
 
-  const handleResetUser = async () => {
-    if (!targetPhone) return toast.error("User phone number is required");
+  const handleAddAllowedEmail = () => {
+    const email = normalizeEmail(newAllowedEmail);
+
+    if (!isValidEmail(email)) {
+      toast.error("Enter a valid email to add.", { theme: "dark" });
+      return;
+    }
+
+    if (allowlist.includes(email)) {
+      toast.info("Email already exists in allowlist.", { theme: "dark" });
+      return;
+    }
+
+    const next = [...allowlist, email];
+    setAllowlist(next);
+    writeAllowlist(next);
+    setNewAllowedEmail("");
+    toast.success("Allowed admin email added.", { theme: "dark" });
+  };
+
+  const handleRemoveAllowedEmail = (email: string) => {
+    if (PRIMARY_ADMIN_EMAILS.map(normalizeEmail).includes(email)) {
+      toast.error("Primary admin email cannot be removed.", { theme: "dark" });
+      return;
+    }
+
+    if (session?.email === email) {
+      toast.error("You cannot remove your currently logged-in email.", {
+        theme: "dark",
+      });
+      return;
+    }
+
+    const next = allowlist.filter((item) => item !== email);
+    setAllowlist(next);
+    writeAllowlist(next);
+    toast.info("Allowed admin email removed.", { theme: "dark" });
+  };
+
+  const handleResetGeneration = async () => {
+    const email = normalizeEmail(targetEmail);
+
+    if (!session) {
+      toast.error("Admin session expired. Please verify OTP again.", {
+        theme: "dark",
+      });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      toast.error("Enter a valid user email to reset.", { theme: "dark" });
+      return;
+    }
+
     setIsResetting(true);
-    const response = await adminApi.resetUserGeneration(targetPhone);
-    if (response.success) {
-      toast.success(`Reset generation for ${targetPhone}`);
-      setTargetPhone("");
-    } else {
-      toast.error(response.error || "Failed to reset generation");
+    try {
+      const response = await fetch(RESET_GENERATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          requestId: targetRequestId.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      const message = getApiMessage(data, "Failed to reset generation state.");
+
+      if (!response.ok || !data?.success) {
+        throw new Error(message);
+      }
+
+      toast.success(
+        data?.message || "Generation state reset successfully for this email.",
+        { theme: "dark" },
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to reset generation state.";
+      toast.error(message, { theme: "dark" });
+    } finally {
+      setIsResetting(false);
     }
-    setIsResetting(false);
   };
 
-  // Login View
-  if (!isAuthenticated) {
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+    setAuthOtp("");
+    setIsOtpSent(false);
+    setRequestId("");
+    toast.info("Logged out from admin dashboard.", { theme: "dark" });
+  };
+
+  if (!session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] p-6 relative">
-        {/* Abstract Background */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
-          <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-orange-500/30 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px]" />
-        </div>
-
-        <AdminCard className="w-full max-w-md p-8 relative z-10 border-white/5 shadow-2xl">
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 flex items-center justify-center mb-4">
-              <ShieldCheck className="w-8 h-8 text-orange-500" />
+      <section className="min-h-screen bg-[#050505] pt-32 pb-16 text-white">
+        <div className="container mx-auto px-6 max-w-xl">
+          <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-8 sm:p-10 space-y-6">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-7 h-7 text-[#FF4500]" />
+              <h1 className="text-3xl font-serif">Admin Dashboard Login</h1>
             </div>
-            <h1 className="text-2xl font-bold text-white font-stack">Admin Access</h1>
-            <p className="text-sm text-neutral-500 mt-2">Enter your authorized mobile number to receive an access code</p>
-          </div>
 
-          {!isOtpSent ? (
+
+
             <div className="space-y-4">
-              <div className="space-y-2 text-left">
-                <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest ml-1">Authorized Mobile Number</label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-neutral-500 uppercase tracking-widest ml-1">Admin Mobile Number</label>
                 <PhoneInput 
                   value={authPhone}
                   onChange={(val) => setAuthPhone(val)}
-                  placeholder="Enter authorized number"
+                  placeholder="Enter your number"
                 />
               </div>
-              <AdminButton 
-                className="w-full h-12" 
-                onClick={handleSendOtp}
-                isLoading={isBusy}
-              >
-                Send Access Code
-              </AdminButton>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <AdminInput 
-                label="Verification Code"
-                placeholder="6-digit OTP"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
-              />
-              <div className="flex flex-col gap-3">
-                <AdminButton 
-                  className="w-full h-12" 
-                  onClick={handleVerifyOtp}
-                  isLoading={isBusy}
-                >
-                  Verify & Enter Dashboard
-                </AdminButton>
-                <button 
-                  className="text-xs text-neutral-500 hover:text-white transition-colors py-2"
-                  onClick={() => setIsOtpSent(false)}
-                >
-                  Back to phone entry
-                </button>
-              </div>
-            </div>
-          )}
 
-          <div className="mt-8 pt-6 border-t border-white/5 flex justify-center">
-            <Link to="/" className="text-xs text-neutral-500 hover:text-white flex items-center gap-2 transition-colors">
-              <Home className="w-3 h-3" />
-              Return to Home
-            </Link>
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                disabled={isSendingOtp}
+                className="w-full rounded-full bg-white text-black py-3 font-semibold text-sm hover:bg-gray-200 transition-colors disabled:opacity-60"
+              >
+                {isSendingOtp ? "Sending OTP..." : "Request OTP"}
+              </button>
+
+              {isOtpSent && (
+                <>
+                  <input
+                    type="text"
+                    value={authOtp}
+                    onChange={(e) => setAuthOtp(e.target.value)}
+                    placeholder="Enter 6-digit OTP"
+                    maxLength={6}
+                    className="w-full rounded-full bg-white/5 border border-[#FF4500]/35 px-5 py-3 text-sm text-white placeholder-white/30 tracking-[0.3em] text-center focus:outline-none focus:border-[#FF4500]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={isVerifyingOtp}
+                    className="w-full rounded-full bg-[#FF4500] text-white py-3 font-semibold text-sm hover:bg-[#ff5d1f] transition-colors disabled:opacity-60"
+                  >
+                    {isVerifyingOtp ? "Verifying..." : "Verify OTP"}
+                  </button>
+                </>
+              )}
+
+              {requestId && (
+                <p className="text-xs text-gray-500 break-all">
+                  Session ID: {requestId}
+                </p>
+              )}
+            </div>
           </div>
-        </AdminCard>
-      </div>
+        </div>
+      </section>
     );
   }
 
-  // Sidebar Menu Items
-  const menuItems = [
-    { id: "users", label: "Retry Generation", icon: RotateCcw },
-    { id: "admins", label: "Admins", icon: Users },
-  ] as const;
-
-  // Main Dashboard View
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#050505]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 z-40">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-orange-500" />
-          <span className="font-bold font-stack tracking-tight">Admin Console</span>
-        </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-neutral-400 hover:text-white">
-          {isSidebarOpen ? <X /> : <Menu />}
-        </button>
-      </div>
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-[#050505] border-r border-white/5 transition-transform duration-300 transform lg:translate-x-0 lg:static
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-      `}>
-        <div className="flex flex-col h-full p-8">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <p className="font-bold text-lg font-stack tracking-tight leading-tight">Admin Console</p>
-              <p className="text-[10px] text-neutral-500 font-medium uppercase tracking-widest">Frame Forge v1.0</p>
-            </div>
+    <section className="min-h-screen bg-[#050505] pt-32 pb-16 text-white">
+      <div className="container mx-auto px-6 max-w-4xl space-y-8">
+        <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-serif">Admin Dashboard</h1>
+            <p className="text-sm text-gray-400 mt-2">Logged in as {session.email}</p>
           </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm hover:bg-white/5 transition-colors"
+          >
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
+        </div>
 
-          <nav className="flex-1 space-y-2">
-            {menuItems.map((item) => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8 space-y-5">
+            <h2 className="text-xl font-semibold">Allowed Admin Emails</h2>
+
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={newAllowedEmail}
+                onChange={(e) => setNewAllowedEmail(e.target.value)}
+                placeholder="Add allowed email"
+                className="flex-1 rounded-full bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#FF4500]/60"
+              />
               <button
-                key={item.id}
-                onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
-                  ${activeTab === item.id 
-                    ? "bg-white/10 text-white border border-white/5 shadow-lg" 
-                    : "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
-                  }
-                `}
+                type="button"
+                onClick={handleAddAllowedEmail}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white text-black px-4 py-2.5 text-sm font-semibold hover:bg-gray-200 transition-colors"
               >
-                <item.icon className={`w-4 h-4 ${activeTab === item.id ? "text-orange-500" : ""}`} />
-                {item.label}
+                <UserPlus className="w-4 h-4" /> Add
               </button>
-            ))}
-          </nav>
-
-          <div className="pt-8 mt-8 border-t border-white/5">
-            <div className="flex items-center gap-3 px-2 mb-6">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                <User className="w-5 h-5 text-neutral-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold truncate">{session?.phone}</p>
-                <p className="text-[10px] text-neutral-500">Super Administrator</p>
-              </div>
             </div>
-            <AdminButton variant="ghost" className="w-full justify-start text-red-500/70 hover:text-red-500 hover:bg-red-500/5" onClick={logout}>
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </AdminButton>
 
-            <Link to="/" className="w-full flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-neutral-500 hover:text-neutral-300 hover:bg-white/5 transition-all font-medium text-sm">
-              <Home className="w-4 h-4" />
-              Return to Home
-            </Link>
+            <div className="space-y-2 max-h-72 overflow-auto pr-1">
+              {allowlist.map((email) => (
+                <div
+                  key={email}
+                  className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
+                >
+                  <span className="text-sm text-gray-200 break-all">{email}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAllowedEmail(email)}
+                    className="inline-flex items-center justify-center rounded-full p-2 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                    aria-label={`Remove ${email}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-[#0b0b0b] p-6 sm:p-8 space-y-5">
+            <h2 className="text-xl font-semibold">Reset User Generation</h2>
+            <p className="text-sm text-gray-400">
+              Use the reset API to allow a user email to generate image again.
+            </p>
+
+            <input
+              type="email"
+              value={targetEmail}
+              onChange={(e) => setTargetEmail(e.target.value)}
+              placeholder="User email"
+              className="w-full rounded-full bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#FF4500]/60"
+            />
+
+            <input
+              type="text"
+              value={targetRequestId}
+              onChange={(e) => setTargetRequestId(e.target.value)}
+              placeholder="Request ID (optional)"
+              className="w-full rounded-full bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#FF4500]/60"
+            />
+
+            <button
+              type="button"
+              onClick={handleResetGeneration}
+              disabled={isResetting}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#FF4500] px-5 py-3 text-sm font-semibold text-white hover:bg-[#ff5d1f] transition-colors disabled:opacity-60"
+            >
+              <RotateCcw className="w-4 h-4" />
+              {isResetting ? "Resetting..." : "Reset Generation"}
+            </button>
           </div>
         </div>
-      </aside>
-
-      {/* Overlay for mobile sidebar */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
-
-      {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-12 pt-24 lg:pt-12 overflow-y-auto">
-        <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
-          {activeTab === "users" && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold font-stack mb-2">Retry Generation</h1>
-                <p className="text-neutral-400">Reset the generation status for a user to allow them to try again.</p>
-              </div>
-
-              <AdminCard className="p-8">
-                <div className="max-w-xl space-y-6">
-                  <div className="space-y-4">
-                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest">User Mobile Number</p>
-                    <div className="flex flex-col gap-4">
-                      <PhoneInput 
-                        value={targetPhone}
-                        onChange={(val) => setTargetPhone(val)}
-                        placeholder="Enter user phone number"
-                        className="flex-1"
-                      />
-                      <AdminButton 
-                        variant="secondary"
-                        className="whitespace-nowrap h-[56px] px-8 sm:w-auto w-full"
-                        onClick={handleResetUser}
-                        isLoading={isResetting}
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                        Reset Generation
-                      </AdminButton>
-                    </div>
-                    <p className="text-xs text-neutral-500 italic">
-                      Note: This will clear the generation status in the database, allowing the user to initiate a new request.
-                    </p>
-                  </div>
-                </div>
-              </AdminCard>
-            </div>
-          )}
-
-          {activeTab === "admins" && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-bold font-stack mb-2">Admin Management</h1>
-                <p className="text-neutral-400">Add or remove administrative users for this console.</p>
-              </div>
-              <AdminManagement />
-            </div>
-          )}
-
-        </div>
-      </main>
-    </div>
+      </div>
+    </section>
   );
 };

@@ -8,23 +8,23 @@ import {
   Trash2,
   Loader2,
   Sparkles,
-  Smartphone,
+  Mail,
   ShieldCheck,
   Image as ImageIcon,
   ArrowRight,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { PhoneInput } from "@/components/PhoneInput";
+import { adminApi } from "@/lib/adminApi";
 
 type Gender = "male" | "female";
-const BASE_URL = "https://memento.frameforge.one/api";
-const REQUEST_OTP_URL = `${BASE_URL}/auth/request-otp`;
-const VERIFY_OTP_URL = `${BASE_URL}/auth/verify-otp`;
-const GENERATE_URL = `${BASE_URL}/generate`;
-const DOWNLOAD_PROXY_URL = `${BASE_URL}/assets/download`;
+const REQUEST_OTP_URL = "https://memento.frameforge.one/api/auth/request-otp";
+const VERIFY_OTP_URL = "https://memento.frameforge.one/api/auth/verify-otp";
+const GENERATE_URL = "https://memento.frameforge.one/api/generate";
+const DOWNLOAD_PROXY_URL = "https://memento.frameforge.one/api/assets/download";
 const GENERATE_API_ORIGIN = new URL(GENERATE_URL).origin;
 const DOWNLOAD_API_KEY = (import.meta.env.VITE_DOWNLOAD_API_KEY || "").trim();
-const ESTIMATED_GENERATION_SECONDS = 90;
+const ESTIMATED_GENERATION_SECONDS = 45;
 
 const getApiMessage = (data: unknown, fallback: string) => {
   if (!data || typeof data !== "object") return fallback;
@@ -58,7 +58,7 @@ const isAlreadyRegistered = (status: number, message: string, data: unknown) => 
   }
 
   if (status === 409) return true;
-  return /already\s*(registered|exists|verified|used)|phone\s*(already\s*)?(exists|registered)/i.test(
+  return /already\s*(registered|exists|verified|used)|email\s*(already\s*)?(exists|registered)/i.test(
     message,
   );
 };
@@ -165,69 +165,35 @@ export const Demo = () => {
 
   const handleSendOtp = async () => {
     const phone = formData.phone.trim();
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/; // E.164 format
 
-    if (!phone || !phoneRegex.test(phone)) {
-      toast.error("Please enter a valid phone number (e.g., +919876543210).", { theme: "dark" });
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid mobile number.", { theme: "dark" });
       return;
     }
 
     setIsSendingOtp(true);
     try {
-      // Increased timeout to 30s to allow for slow SMS services
-      const response = await fetchWithTimeout(REQUEST_OTP_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phone }),
-      }, 30000);
+      const response = await adminApi.requestOtp(phone);
 
-      const data = await response.json().catch(() => ({}));
-      const apiMessage = getApiMessage(data, "Failed to send verification code.");
-
-      // Check if the backend actually sent the SMS even if status is not 200
-      const successfullySent = 
-        response.ok || 
-        data?.success === true || 
-        data?.success === "true" || 
-        data?.smsSent === true || 
-        data?.smsSent === "true" ||
-        /sent|success|code/i.test(apiMessage);
-
-      if (isAlreadyRegistered(response.status, apiMessage, data)) {
-        toast.info(
-          "This phone number has already completed a Frame Forge generation. Please use a different number.",
-          { theme: "dark" }
-        );
-        setIsSendingOtp(false);
-        return;
+      if (!response.success) {
+        throw new Error(response.error || "Failed to send verification code.");
       }
 
-      if (!successfullySent) {
-        throw new Error(apiMessage);
-      }
-
-      const maybeRequestId = typeof data?.requestId === "string" ? data.requestId : "";
       setFormData((prev) => ({ ...prev, phone }));
-      setRequestId(maybeRequestId);
+      setRequestId(response.requestId || "");
       setIsOtpSent(true);
 
-      const successMessage = /sent|verification\s*code/i.test(apiMessage)
-        ? apiMessage
-        : "Verification code sent! Your Frame Forge journey begins now.";
-      
-      toast.success(successMessage, { 
-        theme: "dark",
-        icon: <ShieldCheck className="w-5 h-5 text-[#FF4500]" />
-      });
+      const successMessage = response.data?.smsSent 
+        ? "Verification code sent to your phone!" 
+        : "Verification code has been sent.";
+      toast.info(successMessage, { theme: "dark" });
     } catch (error) {
       const message =
         error instanceof Error
           ? error.name === "AbortError"
-            ? "Request timed out. Please check your signal and try again."
+            ? "Request timed out. Please try again."
             : error.message
-          : "Failed to send verification code. Please try again.";
+          : "Failed to send verification code.";
       toast.error(message, { theme: "dark" });
     } finally {
       setIsSendingOtp(false);
@@ -244,41 +210,14 @@ export const Demo = () => {
 
     setIsVerifyingOtp(true);
     try {
-      const response = await fetchWithTimeout(VERIFY_OTP_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone: formData.phone,
-          otp,
-        }),
-      });
+      const response = await adminApi.verifyOtp(formData.phone, otp);
 
-      const data = await response.json().catch(() => ({}));
-
-      const apiMessage = getApiMessage(data, "Verification failed.");
-
-      if (!response.ok || !data?.verified) {
-        if (isOtpExpired(response.status, apiMessage)) {
-          throw new Error("OTP expired. Please request a new code.");
-        }
-
-        if (isOtpInvalid(response.status, apiMessage)) {
-          throw new Error("Invalid OTP. Please check and try again.");
-        }
-
-        throw new Error(apiMessage);
+      if (!response.success || !response.data?.verified) {
+        throw new Error(response.error || "Verification failed.");
       }
 
-      setRequestId(data?.requestId || requestId);
       setIsOtpVerified(true);
-      toast.success(
-        /verified|success/i.test(apiMessage)
-          ? apiMessage
-          : "OTP verified successfully! You can now proceed.",
-        { theme: "dark" },
-      );
+      toast.success("OTP verified successfully! You can now proceed.", { theme: "dark" });
     } catch (error) {
       const message =
         error instanceof Error
@@ -321,22 +260,22 @@ export const Demo = () => {
   };
 
   const handleRemoveImage = () => {
+      // Modal logic
+      const handleUploadClick = () => {
+        if (!isGenerating) setShowUploadModal(true);
+      };
+
+      const handleModalOk = () => {
+        setShowUploadModal(false);
+        fileInputRef.current?.click();
+      };
+
+      const handleModalCancel = () => {
+        setShowUploadModal(false);
+      };
     setSelectedFile(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleUploadClick = () => {
-    if (!isGenerating) setShowUploadModal(true);
-  };
-
-  const handleModalOk = () => {
-    setShowUploadModal(false);
-    fileInputRef.current?.click();
-  };
-
-  const handleModalCancel = () => {
-    setShowUploadModal(false);
   };
 
   const handleDownloadPoster = async () => {
@@ -377,10 +316,6 @@ export const Demo = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(objectUrl);
-      toast.success("Download started! Redirecting to home...", { theme: "dark" });
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2000);
     } catch {
       toast.error("Download failed. Please try again.", { theme: "dark" });
     } finally {
@@ -392,7 +327,7 @@ export const Demo = () => {
     e.preventDefault();
 
     if (!isOtpVerified) {
-      toast.error("Please verify your phone number first.", { theme: "dark" });
+      toast.error("Please verify your email first.", { theme: "dark" });
       return;
     }
 
@@ -404,7 +339,7 @@ export const Demo = () => {
     }
 
     if (!requestId) {
-      toast.error("Missing verification session. Please verify phone number again.", {
+      toast.error("Missing verification session. Please verify email again.", {
         theme: "dark",
       });
       return;
@@ -427,7 +362,7 @@ export const Demo = () => {
           method: "POST",
           body: payload,
         },
-        120000,
+        45000,
       );
 
       const data = await response.json().catch(() => ({}));
@@ -519,7 +454,7 @@ export const Demo = () => {
               type="button"
               onClick={handleDownloadPoster}
               disabled={!generatedImageUrl || isDownloading}
-              className="px-8 py-4 bg-[#FF4500] text-white rounded-full font-bold hover:bg-[#FF5510] transition-all active:scale-95 text-base flex items-center gap-2 disabled:opacity-60 shadow-lg shadow-[#FF4500]/20"
+              className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition-all active:scale-95 text-base flex items-center gap-2 disabled:opacity-60"
             >
               {isDownloading ? (
                 <>
@@ -530,13 +465,6 @@ export const Demo = () => {
                   Download Poster <Upload className="w-4 h-4 rotate-180" />
                 </>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={() => window.location.href = "/"}
-              className="px-8 py-4 bg-white/5 border border-white/10 text-white rounded-full font-bold hover:bg-white/10 transition-all active:scale-95 text-base flex items-center gap-2"
-            >
-              Back to Home
             </button>
           </div>
         </div>
@@ -584,7 +512,7 @@ export const Demo = () => {
         </div>
       </section>
 
-      <section className="py-20 relative">
+      <section className="py-20 relative overflow-hidden">
         <div className="container mx-auto px-6 relative z-10">
           <AnimatePresence mode="wait">
             {!isOtpVerified ? (
@@ -596,7 +524,7 @@ export const Demo = () => {
                 transition={{ duration: 0.5 }}
                 className="max-w-xl mx-auto px-1"
               >
-                <div className="bg-[#111] p-6 sm:p-8 md:p-14 rounded-[30px] md:rounded-[40px] border border-white/5 shadow-2xl space-y-7 relative group">
+                <div className="bg-[#111] p-6 sm:p-8 md:p-14 rounded-[30px] md:rounded-[40px] border border-white/5 shadow-2xl space-y-7 relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF4500]/50 to-transparent"></div>
 
                   <div className="text-center space-y-4">
@@ -607,7 +535,7 @@ export const Demo = () => {
                       Identity Verification
                     </h2>
                     <p className="text-gray-500 text-sm max-w-xs mx-auto">
-                      Please verify your mobile number to access the identity-preserving
+                      Please verify your email to access the identity-preserving
                       demo.
                     </p>
                   </div>
@@ -617,11 +545,11 @@ export const Demo = () => {
                       <label className="text-xs uppercase tracking-widest text-gray-500 ml-4 font-semibold">
                         Mobile Number
                       </label>
-                      <PhoneInput
+                      <PhoneInput 
                         value={formData.phone}
-                        onChange={(val) => setFormData((prev) => ({ ...prev, phone: val }))}
+                        onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
                         disabled={isOtpSent}
-                        placeholder="Enter mobile number"
+                        placeholder="Enter your number"
                       />
                     </div>
 
@@ -687,7 +615,7 @@ export const Demo = () => {
                           }}
                           className="w-full text-[11px] text-gray-500 uppercase tracking-[0.14em] sm:tracking-widest hover:text-white transition-colors"
                         >
-                          Change Mobile Number
+                          Change Email Address
                         </button>
                       </motion.div>
                     )}
@@ -817,24 +745,29 @@ export const Demo = () => {
                                 Estimated Generation Time
                               </p>
                               <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="text-sm font-mono text-white font-bold"
+                                key={secondsRemaining}
+                                initial={{ scale: 1.06, opacity: 0.7 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ duration: 0.25 }}
+                                className="text-sm font-semibold text-white"
                               >
                                 {formatCountdown(secondsRemaining)}
                               </motion.p>
                             </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+
+                            <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
                               <motion.div
-                                initial={{ width: "0%" }}
+                                className="h-full rounded-full bg-gradient-to-r from-[#FF4500] via-[#FF6A1A] to-[#FFA366]"
+                                initial={{ width: 0 }}
                                 animate={{ width: `${generationProgress}%` }}
-                                transition={{ ease: "linear" }}
-                                className="h-full bg-[#FF4500] shadow-[0_0_15px_rgba(255,69,0,0.5)]"
+                                transition={{ ease: "easeOut", duration: 0.9 }}
                               />
                             </div>
-                            <p className="text-[10px] text-gray-500 mt-3 text-center uppercase tracking-[0.15em] font-medium animate-pulse">
-                              Our AI is weaving your digital destiny...
-                            </p>
+
+                            <div className="flex items-center justify-between mt-3 text-[11px] text-gray-400">
+                              <span>Preparing your final poster...</span>
+                              <span>Please stay on this page</span>
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -850,9 +783,38 @@ export const Demo = () => {
                       <div
                         onClick={handleUploadClick}
                         className={`relative w-full aspect-square rounded-3xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-4 overflow-hidden group
-                          ${imagePreview ? "border-[#FF4500]/40" : "border-white/10 hover:border-white/30 bg-white/[0.02]"}
-                          ${isGenerating ? "pointer-events-none opacity-60" : ""}`}
+                                                    ${imagePreview ? "border-[#FF4500]/40" : "border-white/10 hover:border-white/30 bg-white/[0.02]"}
+                                                    ${isGenerating ? "pointer-events-none opacity-60" : ""}`}
                       >
+                              {showUploadModal && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                                  <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl p-6 font-sans">
+                                    <h3 className="text-lg font-semibold mb-2">Upload Warning</h3>
+                                    <p className="text-sm text-gray-600 mb-5">
+                                      You only have one generation so please use a good photo with proper lighting and direct angles
+                                    </p>
+                                    <img
+                                      src="/Image to use.webp"
+                                      alt="Guidelines"
+                                      className="w-full h-auto rounded-lg mb-5 object-contain"
+                                    />
+                                    <div className="flex justify-end gap-3">
+                                      <button
+                                        onClick={handleModalCancel}
+                                        className="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={handleModalOk}
+                                        className="px-4 py-2 rounded-md bg-black text-white font-semibold hover:bg-gray-900 transition"
+                                      >
+                                        OK, Continue
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                         {imagePreview ? (
                           <>
                             <img
@@ -877,7 +839,8 @@ export const Demo = () => {
                                 Click to upload portrait
                               </p>
                               <p className="text-gray-500 text-xs leading-relaxed italic">
-                                Upload a clear photo for 100% identity preservation
+                                Upload a clear photo for 100% identity
+                                preservation
                               </p>
                             </div>
                           </>
@@ -891,55 +854,6 @@ export const Demo = () => {
                           className="hidden"
                         />
                       </div>
-
-                      <AnimatePresence>
-                        {showUploadModal && (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 cursor-default"
-                          >
-                            <motion.div 
-                              initial={{ scale: 0.95, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              exit={{ scale: 0.95, opacity: 0 }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="bg-[#111] border border-white/10 rounded-3xl shadow-2xl w-full max-w-xl p-8 sm:p-10 font-sans text-left"
-                            >
-                              <h3 className="text-2xl sm:text-3xl font-serif text-white uppercase tracking-tight mb-4">Upload Guidelines</h3>
-                              <p className="text-sm text-gray-400 mb-8 leading-relaxed">
-                                You only have one generation, so please use a high-quality photo with proper lighting and direct angles for the best result.
-                              </p>
-                              <div className="relative rounded-2xl overflow-hidden border border-white/5 mb-8">
-                                <img
-                                  src="/Image to use.webp"
-                                  alt="Guidelines Example"
-                                  className="w-full h-auto object-contain"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                              </div>
-                              <div className="flex justify-end gap-3">
-                                <button
-                                  type="button"
-                                  onClick={handleModalCancel}
-                                  className="px-6 py-3 rounded-full border border-white/10 bg-white/5 text-gray-400 hover:text-white transition uppercase text-xs font-bold tracking-widest"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleModalOk}
-                                  className="px-10 py-3 rounded-full bg-[#FF4500] text-white font-bold hover:bg-[#FF5510] transition uppercase text-xs tracking-widest"
-                                >
-                                  OK, Continue
-                                </button>
-                              </div>
-                            </motion.div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
 
                       {imagePreview && (
                         <button
@@ -962,7 +876,9 @@ export const Demo = () => {
                               Identity Preservation
                             </p>
                             <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                              Your facial features are mirrored with exact precision. Our AI only enhances the cinematic landscape around your true self.
+                              Your facial features are mirrored with exact
+                              precision. Our AI only enhances the cinematic
+                              landscape around your true self.
                             </p>
                           </div>
                         </div>

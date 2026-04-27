@@ -7,35 +7,35 @@ const steps = [
     icon: UserPlus,
     title: "Register",
     description: "Set up your event in Frame Forge by providing basic details like event name, date, branding assets, and design preferences.",
-    image: "/Event branding.png"
+    image: "/showcase-speaker-frame.png"
   },
   {
     number: "02",
     icon: Link2,
     title: "Integrate",
     description: "Connect Frame Forge to your event using our flexible options: API, embeddable link, or custom website snippet.",
-    image: "/API.png"
+    image: "/showcase-attendee-badge.png"
   },
   {
     number: "03",
     icon: Upload,
     title: "Upload",
     description: "Through your chosen integration, attendees easily upload their photos. Mobile-friendly and no app downloads required.",
-    image: "/ADD IMAGE.gif"
+    image: "/Frame 2087326593.png"
   },
   {
     number: "04",
     icon: Sparkles,
     title: "AI Magic",
     description: "Our AI instantly processes the photo, applying your custom frame design and generating any visual elements you configured.",
-    image: "/AI Magic.mp4"
+    image: "/sample-frame-1.jpg"
   },
   {
     number: "05",
     icon: Share2,
     title: "Amplify",
     description: "Attendees receive their branded photo ready to share on social media. Every share extends your event's reach organically.",
-    image: "/AMPLIFY.mp4"
+    image: "/Instagram story mockup.png"
   },
 ];
 
@@ -47,7 +47,7 @@ export const HowItWorks = () => {
                 {/* Background Atmosphere */}
                 <div className="absolute inset-0 z-0 pointer-events-none select-none">
                     <div className="absolute top-0 left-0 w-full h-full opacity-40 mix-blend-screen">
-                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" loading="lazy" />
+                        <img src="https://framerusercontent.com/images/9zvwRJAavKKacVyhFCwHyXW1U.png?width=1536&height=1024" alt="Atmosphere" className="w-full h-full object-cover object-center opacity-80" />
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505] z-10"></div>
                 </div>
@@ -91,29 +91,20 @@ export const HowItWorks = () => {
                                 </p>
                             </div>
 
-                            <div className="flex-1 relative group w-full max-w-xl">
+                            <div className="flex-1 relative group w-full max-w-xl md:max-w-none">
                                 <div className="absolute -inset-4 bg-[#FF4500]/20 rounded-[40px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                <div className="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-[#111] flex items-center justify-center">
-                                    {step.image.endsWith('.mp4') ? (
-                                        <video 
-                                            src={step.image} 
-                                            autoPlay 
-                                            loop 
-                                            muted 
-                                            playsInline
-                                            preload="metadata"
-                                            className="w-full h-auto block transform transition-transform duration-700 group-hover:scale-[1.02]"
-                                        />
-                                    ) : (
-                                        <img 
-                                            src={step.image} 
-                                            alt={step.title} 
-                                            loading="lazy"
-                                            className={`w-full h-auto block transform transition-transform duration-700 ${step.title === "Upload" ? "scale-[1.2]" : "group-hover:scale-[1.02]"}`}
-                                        />
-                                    )}
-                                    {/* Overlay for depth */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
+                                <div className="relative w-full overflow-hidden rounded-[32px] border border-white/10 bg-[#111]">
+                                    <img
+                                        src={step.image}
+                                        alt=""
+                                        aria-hidden="true"
+                                        className="absolute inset-0 w-full h-full object-cover object-center opacity-30 scale-110 blur-xl"
+                                    />
+                                    <img 
+                                        src={step.image} 
+                                        alt={step.title} 
+                                        className="relative z-10 block w-full h-auto max-h-[75vh] object-contain object-center transform transition-transform duration-700 group-hover:scale-[1.02] p-2 sm:p-3"
+                                    />
                                 </div>
                             </div>
 
